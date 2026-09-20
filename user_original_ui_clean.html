@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIM-PROKAS KALTIM - Bidang Kebakaran Satpol PP Provinsi Kalimantan Timur</title>
+    
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        
+                        damkar: {
+                            dark: '#0f172a',     
+                            red: '#e11d48',      
+                            orange: '#f97316',   
+                            gold: '#f59e0b',     
+                            navy: '#1e3a8a',     
+                            lightBg: '#f8fafc'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ef4444; 
+        }
+        
+         
+        #main-map {
+            z-index: 10;
+        }
+
+         
+        .beacon-pulse {
+            position: relative;
+        }
+        .beacon-pulse::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            border-radius: inherit;
+            background-color: #ef4444;
+            opacity: 0.8;
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.610, 0.355, 1) infinite;
+            z-index: -1;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { opacity: 0.4; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+
+         
+        .nav-active {
+            background-color: rgba(225, 29, 72, 0.15) !important;
+            color: #f43f5e !important;
+            border-left: 4px solid #e11d48;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased overflow-hidden">
+
+    
+    <div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col gap-3 max-w-sm pointer-events-none"></div>
+
+    
+    <div class="flex h-screen w-full overflow-hidden bg-slate-950">
+        
+        
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/70 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+        
+        <aside id="sidebar" class="fixed inset-y-0 left-0 bg-slate-900 text-white w-72 z-50 transform -translate-x-full lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col border-r border-slate-800">
+            
+            <div class="flex items-center gap-3 h-20 px-6 border-b border-slate-800 shrink-0 bg-slate-900/50">
+                <div class="w-12 h-12 bg-gradient-to-br from-damkar-red to-damkar-orange rounded-xl flex items-center justify-center text-white shadow-lg shadow-damkar-red/20 beacon-pulse">
+                    <i class="fa-solid fa-fire-extinguisher text-xl animate-bounce"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-extrabold tracking-tight text-white leading-tight">SIM-PROKAS</h1>
+                    <span class="text-[10px] text-damkar-orange font-bold tracking-widest uppercase">Bidang Kebakaran Satpol PP Provinsi Kalimantan Timur</span>
+                </div>
+            </div>
+
+            
+            <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+                <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">MENU UTAMA</p>
+                
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-3 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-all group nav-active">
+                    <i class="fa-solid fa-chart-line w-5 text-center group-hover:text-damkar-red transition-colors"></i>
+                    <span class="font-semibold text-sm">Dashboard Operasional</span>
+                </button>
+                
+                <button onclick="switchTab('personel')" id="nav-personel" class="w-full flex items-center gap-3 px-3 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-all group">
+                    <i class="fa-solid fa-users-gear w-5 text-center group-hover:text-damkar-red transition-colors"></i>
+                    <span class="font-semibold text-sm">Manajemen Personil</span>
+                    <span id="badge-personel-count" class="ml-auto bg-slate-800 text-slate-400 group-hover:bg-damkar-red/10 group-hover:text-damkar-red text-xs px-2.5 py-0.5 rounded-full font-bold">0</span>
+                </button>
+                
+                <button onclick="switchTab('kejadian')" id="nav-kejadian" class="w-full flex items-center gap-3 px-3 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-all group">
+                    <i class="fa-solid fa-fire-flame-curved w-5 text-center group-hover:text-damkar-red transition-colors"></i>
+                    <span class="font-semibold text-sm">Manajemen Kejadian</span>
+                    <span class="ml-auto bg-damkar-red text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">3 AKTIF</span>
+                </button>
+
+                <button onclick="switchTab('kendaraan')" id="nav-kendaraan" class="w-full flex items-center gap-3 px-3 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-all group">
+                    <i class="fa-solid fa-truck-fire w-5 text-center group-hover:text-damkar-red transition-colors"></i>
+                    <span class="font-semibold text-sm">Manajemen Kendaraan</span>
+                    <span class="ml-auto bg-emerald-500/10 text-emerald-400 text-xs px-2 py-0.5 rounded-full font-bold">5 SIAP</span>
+                </button>
+
+                <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2">RISPK & MANAJERIAL</p>
+
+                <button onclick="switchTab('eksekutif')" id="nav-eksekutif" class="w-full flex items-center gap-3 px-3 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-all group">
+                    <i class="fa-solid fa-shield-halved w-5 text-center group-hover:text-damkar-red transition-colors"></i>
+                    <span class="font-semibold text-sm">Ringkasan Eksekutif</span>
+                </button>
+
+                <button onclick="switchTab('laporan')" id="nav-laporan" class="w-full flex items-center gap-3 px-3 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-all group">
+                    <i class="fa-solid fa-print w-5 text-center group-hover:text-damkar-red transition-colors"></i>
+                    <span class="font-semibold text-sm">Laporan & Anggaran</span>
+                    <i class="fa-solid fa-circle-check text-[10px] text-damkar-orange ml-auto"></i>
+                </button>
+            </nav>
+
+            
+            <div class="p-4 border-t border-slate-800 bg-slate-950/40">
+                <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 transition-colors border border-slate-800/40 cursor-pointer">
+                    <img src="https://ui-avatars.com/api/?name=Ronaldi&#43;Surya&#43;Darma&amp;background=e11d48&amp;color=ffffff&amp;bold=true" alt="Profile" class="w-10 h-10 rounded-lg shadow-inner ring-2 ring-damkar-red/50 shrink-0">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-white truncate">Ronaldi Surya Darma</p>
+                        <p class="text-[11px] text-damkar-orange font-semibold truncate uppercase tracking-wider">Pemilik</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        
+        <div class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-950">
+            
+            
+            <header class="h-20 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 z-30">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleSidebar()" class="lg:hidden text-slate-400 hover:text-white focus:outline-none">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    
+                    <div class="hidden md:flex flex-col">
+                        <h2 class="text-lg font-bold text-white">SIM-PROKAS (Sistem Proteksi Kebakaran Spasial Kaltim)</h2>
+                        <span class="text-xs text-slate-400">Pusat Pengendali Operasi Penyelamatan Provinsi Kalimantan Timur</span>
+                    </div>
+                </div>
+
+                
+                <div class="flex items-center gap-4">
+                    
+                    <button onclick="triggerSimulationAlert()" class="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-600/20 to-orange-600/20 hover:from-red-600 hover:to-orange-500 border border-red-500/30 hover:border-red-500 text-red-400 hover:text-white rounded-lg text-xs font-bold transition-all shadow-md hover:shadow-red-500/20">
+                        <i class="fa-solid fa-circle-radiation animate-pulse"></i> SIMULASI KEJADIAN BARU
+                    </button>
+
+                    <div class="h-8 w-px bg-slate-800"></div>
+
+                    
+                    <div class="relative cursor-pointer text-slate-400 hover:text-white transition-colors">
+                        <i class="fa-regular fa-bell text-lg"></i>
+                        <span class="absolute -top-1 -right-1 w-4.5 h-4.5 bg-damkar-red text-[9px] font-black border border-slate-900 rounded-full flex items-center justify-center text-white">3</span>
+                    </div>
+
+                    
+                    <div class="hidden sm:flex flex-col items-end border-l border-slate-800 pl-4">
+                        <span class="text-[10px] font-bold text-damkar-orange uppercase tracking-wider">WAKTU SISTEM</span>
+                        <span id="system-clock" class="text-xs font-mono font-bold text-slate-300">11:19:35 WITA</span>
+                    </div>
+                </div>
+            </header>
+
+            
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-950 p-6">
+                
+                
+                <div id="view-dashboard" class="space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h3 class="text-2xl font-black tracking-tight text-white">Dashboard Bidang Kebakaran Satuan Polisi Pamong Praja Provinsi Kalimantan Timur</h3>
+                            <p class="text-sm text-slate-400">Sistem Informasi Manajemen Pemadam Kebakaran & Kebencanaan terintegrasi.</p>
+                        </div>
+                        <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400">
+                            <i class="fa-solid fa-signal text-emerald-400"></i> Sistem Aktif & Sinkron
+                        </div>
+                    </div>
+
+
+
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 max-w-3xl mx-auto">
+  <h2 class="text-xl font-bold text-white mb-4">Form Laporan Kebakaran & Penyelamatan</h2>
+
+  
+  <form id="formLaporan" onsubmit="submitLaporan(event)">
+    
+    
+    <h3 class="text-emerald-400 text-sm font-semibold mb-2">Data Pelapor</h3>
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div>
+        <label class="text-slate-400 text-xs">Nama Pengisi</label>
+        <input type="text" id="namaPengisi" class="w-full bg-slate-800 text-white p-2 mt-1 rounded border border-slate-700 focus:border-red-500 outline-none" required>
+      </div>
+      <div>
+        <label class="text-slate-400 text-xs">NIP</label>
+        <input type="text" id="nipPengisi" class="w-full bg-slate-800 text-white p-2 mt-1 rounded border border-slate-700 focus:border-red-500 outline-none" required>
+      </div>
+    </div>
+
+    
+    <h3 class="text-emerald-400 text-sm font-semibold mb-2 mt-6">Detail Kejadian</h3>
+    <div class="mb-4">
+      <label class="text-slate-400 text-xs">Lokasi Kejadian</label>
+      <input type="text" id="lokasi" class="w-full bg-slate-800 text-white p-2 mt-1 rounded border border-slate-700 focus:border-red-500 outline-none" required>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div>
+        <label class="text-slate-400 text-xs">Response Time (Menit)</label>
+        <input type="number" id="responseTime" class="w-full bg-slate-800 text-white p-2 mt-1 rounded border border-slate-700 focus:border-red-500 outline-none">
+      </div>
+      <div>
+        <label class="text-slate-400 text-xs">Penyebab Kebakaran</label>
+        <select id="penyebab" class="w-full bg-slate-800 text-white p-2 mt-1 rounded border border-slate-700 focus:border-red-500 outline-none">
+          <option value="Tabung Gas/Kompor">Tabung Gas/Kompor</option>
+          <option value="Arus Listrik">Arus Listrik</option>
+          <option value="Kelalaian Manusia">Kelalaian Manusia</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+      </div>
+    </div>
+
+    
+    <div class="grid grid-cols-2 gap-4 mb-6">
+       <div>
+        <label class="text-slate-400 text-xs">Jumlah Korban Jiwa / Luka</label>
+        <input type="number" id="korban" value="0" class="w-full bg-slate-800 text-white p-2 mt-1 rounded border border-slate-700 focus:border-red-500 outline-none">
+      </div>
+       <div>
+        <label class="text-slate-400 text-xs">Taksiran Kerugian (Rp)</label>
+        <input type="number" id="kerugian" value="0" class="w-full bg-slate-800 text-white p-2 mt-1 rounded border border-slate-700 focus:border-red-500 outline-none">
+      </div>
+    </div>
+
+    
+    <button type="submit" id="btnSimpan" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded w-full transition duration-200">
+      Simpan Data ke Database
+    </button>
+    <p id="pesanStatus" class="mt-3 text-sm text-center hidden"></p>
+  </form>
+</div>
+
+
+<script>
+  function submitLaporan(event) {
+    event.preventDefault(); 
+    
+    const btn = document.getElementById('btnSimpan');
+    const pesan = document.getElementById('pesanStatus');
+
+    
+    btn.innerText = "Memproses Data...";
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+    
+    const dataForm = {
+      namaPengisi: document.getElementById('namaPengisi').value,
+      nipPengisi: document.getElementById('nipPengisi').value,
+      lokasi: document.getElementById('lokasi').value,
+      responseTime: document.getElementById('responseTime').value,
+      penyebab: document.getElementById('penyebab').value,
+      korban: document.getElementById('korban').value,
+      kerugian: document.getElementById('kerugian').value
+    };
+
+    
+    google.script.run
+      .withSuccessHandler(function(response) {
+        
+        pesan.innerText = response;
+        pesan.className = "mt-3 text-sm text-center text-emerald-400 block";
+        
+        
+        btn.innerText = "Simpan Data ke Database";
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        
+        
+        document.getElementById('formLaporan').reset();
+        
+        
+        
+      })
+      .withFailureHandler(function(error) {
+        
+        pesan.innerText = "Error: Terjadi kesalahan saat menyimpan data.";
+        pesan.className = "mt-3 text-sm text-center text-red-500 block";
+        
+        btn.innerText = "Coba Lagi";
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+      })
+      .simpanLaporan(dataForm);
+  }
+</script>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                        
+                        <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 flex items-center justify-between shadow-lg hover:border-damkar-red/30 transition-all cursor-pointer" onclick="switchTab('personel')">
+                            <div class="space-y-2">
+                                <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Total Personil</span>
+                                <h4 class="text-3xl font-extrabold text-white" id="stat-total-personel">0</h4>
+                                <span class="text-xs text-slate-500 block"><i class="fa-solid fa-users text-damkar-orange mr-1"></i> Se-Kalimantan Timur</span>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-users-between-lines"></i>
+                            </div>
+                        </div>
+
+                        
+                        <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 flex items-center justify-between shadow-lg hover:border-damkar-red/30 transition-all cursor-pointer" onclick="switchTab('kejadian')">
+                            <div class="space-y-2">
+                                <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Kejadian Bulan Ini</span>
+                                <h4 class="text-3xl font-extrabold text-damkar-red" id="stat-total-kejadian">38</h4>
+                                <span class="text-xs text-damkar-red/80 font-medium block"><i class="fa-solid fa-triangle-exclamation mr-1 animate-pulse"></i> 3 Masih Berlangsung</span>
+                            </div>
+                            <div class="w-12 h-12 bg-red-500/10 text-red-400 rounded-xl flex items-center justify-center text-xl beacon-pulse">
+                                <i class="fa-solid fa-bullhorn text-lg"></i>
+                            </div>
+                        </div>
+
+                        
+                        <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 flex items-center justify-between shadow-lg hover:border-damkar-red/30 transition-all cursor-pointer" onclick="switchTab('kendaraan')">
+                            <div class="space-y-2">
+                                <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Armada Siap Siaga</span>
+                                <h4 class="text-3xl font-extrabold text-emerald-400" id="stat-total-kendaraan">5</h4>
+                                <span class="text-xs text-slate-500 block">Dari 8 unit terdaftar</span>
+                            </div>
+                            <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-truck-fire"></i>
+                            </div>
+                        </div>
+
+                        
+                        <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 flex items-center justify-between shadow-lg hover:border-damkar-red/30 transition-all">
+                            <div class="space-y-2">
+                                <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Pos Pemadam</span>
+                                <h4 id="stat-total-pos" class="text-3xl font-extrabold text-damkar-orange">
+0
+</h4>
+                                <span class="text-xs text-slate-500 block">Pos Sektor Se-Kaltim</span>
+                            </div>
+                            <div class="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-building-shield"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <div class="lg:col-span-2 bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden flex flex-col h-[520px] shadow-xl relative">
+                            <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/60 shrink-0">
+                                <h4 class="font-extrabold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-map-location-dot text-damkar-red"></i> Peta Spasial Penanggulangan Kebakaran Kaltim
+                                </h4>
+                                <div class="flex items-center gap-3">
+                                    <span class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 bg-red-950/50 border border-red-800/30 text-red-400 rounded-lg">
+                                        <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Darurat
+                                    </span>
+                                    <span class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 bg-emerald-950/50 border border-emerald-800/30 text-emerald-400 rounded-lg">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Aman / Selesai
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div id="main-map" class="w-full grow"></div>
+                        </div>
+
+                        
+                        <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 flex flex-col h-[520px] shadow-xl">
+                            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800 shrink-0">
+                                <h4 class="font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-tower-broadcast text-damkar-red"></i> Aktivitas Real-time
+                                </h4>
+                                <span class="bg-slate-800 text-slate-400 text-[10px] font-extrabold px-2 py-0.5 rounded-md">LIVE</span>
+                            </div>
+                            <div class="flex-1 overflow-y-auto space-y-4 pr-1" id="realtime-activity-feed">
+                                
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <div class="lg:col-span-2 bg-slate-900 border border-slate-800/80 rounded-2xl p-5 shadow-xl h-[360px] flex flex-col">
+                            <h4 class="font-bold text-slate-200 mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-chart-area text-damkar-orange"></i> Tren Kejadian Kebakaran & Bencana (12 Bulan Terakhir)
+                            </h4>
+                            <div class="grow relative">
+                                <canvas id="chart-dashboard-trends"></canvas>
+                            </div>
+                        </div>
+
+                        
+                        <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 shadow-xl h-[360px] flex flex-col">
+                            <h4 class="font-bold text-slate-200 mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-chart-pie text-damkar-red"></i> Jenis Kejadian
+                            </h4>
+                            <div class="grow relative flex justify-center items-center">
+                                <div class="w-[180px] h-[180px]">
+                                    <canvas id="chart-dashboard-types"></canvas>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2 text-xs text-slate-400 mt-2 border-t border-slate-800 pt-3">
+                                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-red-500 rounded-full block"></span> Kebakaran Rumah</div>
+                                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-amber-500 rounded-full block"></span> Kebakaran Hutan</div>
+                                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-blue-500 rounded-full block"></span> Penyelamatan</div>
+                                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-slate-500 rounded-full block"></span> Lainnya</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="view-personel" class="space-y-6 hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-2xl font-black text-white">Manajemen Personil Damkar Kaltim</h3>
+                            <p class="text-sm text-slate-400">Total Personil Terdaftar: <span id="personel-total-text" class="text-damkar-orange font-bold">0</span> personil aktif</p>
+                        </div>
+                        <button onclick="openModal('modal-add-personel')" class="flex items-center gap-2 px-4 py-2.5 bg-damkar-red hover:bg-rose-600 text-white rounded-xl text-sm font-bold transition shadow-lg shadow-damkar-red/10">
+                            <i class="fa-solid fa-user-plus"></i> Tambah Personil Baru
+                        </button>
+                    </div>
+
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 h-[280px] flex flex-col">
+                            <h4 class="font-bold text-slate-300 text-sm mb-4"><i class="fa-solid fa-id-card-clip text-damkar-orange mr-1"></i> Distribusi Status Personil (Berdasarkan Jabatan)</h4>
+                            <div class="grow relative">
+                                <canvas id="chart-personel-ranks"></canvas>
+                            </div>
+                        </div>
+
+                        
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 h-[280px] flex flex-col">
+                            <h4 class="font-bold text-slate-300 text-sm mb-4"><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Status Keaktifan Personil</h4>
+                            <div class="grow relative flex justify-center items-center">
+                                <div class="w-[150px] h-[150px]">
+                                    <canvas id="chart-personel-active"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row gap-4">
+                        <div class="relative flex-1">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-500"></i>
+                            <input type="text" id="personel-search" oninput="filterPersonel()" placeholder="Cari nama, NIP, atau jabatan..." class="w-full bg-slate-950 border border-slate-800 focus:border-damkar-red rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none transition-all">
+                        </div>
+                        <select id="personel-filter-status" onchange="filterPersonel()" class="bg-slate-950 border border-slate-800 focus:border-damkar-red rounded-xl px-4 py-2 text-sm text-slate-300 focus:outline-none">
+                            <option value="Semua">Semua Status Keaktifan</option>
+                            <option value="Aktif">Aktif</option>
+                            <option value="Cuti">Cuti</option>
+                            <option value="Non-Aktif">Non-Aktif</option>
+                        </select>
+                    </div>
+
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="personel-grid-container">
+                        
+                    </div>
+                </div>
+
+                
+                <div id="view-kejadian" class="space-y-6 hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-2xl font-black text-white">Manajemen Kejadian (RISPK)</h3>
+                            <p class="text-sm text-slate-400">Pusat penanganan bencana kebakaran dan penyelamatan darurat Kaltim.</p>
+                        </div>
+                        <button onclick="openModal('modal-add-incident')" class="flex items-center gap-2 px-4 py-2.5 bg-damkar-red hover:bg-rose-600 text-white rounded-xl text-sm font-bold transition shadow-lg">
+                            <i class="fa-solid fa-plus-circle"></i> Tambah Kejadian Baru
+                        </button>
+                    </div>
+
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                        <div class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row gap-4">
+                            <div class="relative flex-1">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-500"></i>
+                                <input type="text" id="incident-search" oninput="filterIncidents()" placeholder="Cari lokasi, id insiden, atau deskripsi..." class="w-full bg-slate-950 border border-slate-800 focus:border-damkar-red rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none transition-all">
+                            </div>
+                            <select id="incident-filter-status" onchange="filterIncidents()" class="bg-slate-950 border border-slate-800 focus:border-damkar-red rounded-xl px-4 py-2 text-sm text-slate-300 focus:outline-none">
+                                <option value="Semua">Semua Status</option>
+                                <option value="Aktif">Aktif Penanganan</option>
+                                <option value="Monitoring">Monitoring</option>
+                                <option value="Selesai">Selesai</option>
+                            </select>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                            <span class="text-xs text-slate-400 font-bold uppercase">Prioritas Tinggi:</span>
+                            <span class="bg-red-500/15 text-red-500 border border-red-500/20 px-3 py-1 rounded-lg text-xs font-black">6 Kasus</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="incidents-list-container">
+                        
+                    </div>
+                </div>
+
+                
+                <div id="view-kendaraan" class="space-y-6 hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-2xl font-black text-white">Manajemen Kendaraan & Logistik Armada</h3>
+                            <p class="text-sm text-slate-400">Monitoring status operasional armada pemadam pos sektor Kaltim.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <span class="bg-slate-900 border border-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold">
+                                <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span> 5 Siaga
+                            </span>
+                            <span class="bg-slate-900 border border-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold">
+                                <span class="w-2.5 h-2.5 bg-blue-500 rounded-full inline-block"></span> 1 Bertugas
+                            </span>
+                            <span class="bg-slate-900 border border-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold">
+                                <span class="w-2.5 h-2.5 bg-amber-500 rounded-full inline-block"></span> 2 Servis/Perbaikan
+                            </span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 h-[280px] flex flex-col shadow-lg">
+                            <h4 class="font-bold text-slate-300 text-xs mb-4 uppercase tracking-wider"><i class="fa-solid fa-gas-pump text-damkar-orange"></i> Tingkat Bahan Bakar Armada (%)</h4>
+                            <div class="grow relative">
+                                <canvas id="chart-fleet-fuel"></canvas>
+                            </div>
+                        </div>
+
+                        
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 h-[280px] flex flex-col shadow-lg">
+                            <h4 class="font-bold text-slate-300 text-xs mb-4 uppercase tracking-wider"><i class="fa-solid fa-wrench text-blue-400"></i> Fisik & Kondisi Mekanis Kendaraan</h4>
+                            <div class="grow relative">
+                                <canvas id="chart-fleet-conditions"></canvas>
+                            </div>
+                        </div>
+
+                        
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 h-[280px] flex flex-col shadow-lg">
+                            <h4 class="font-bold text-slate-300 text-xs mb-4 uppercase tracking-wider"><i class="fa-solid fa-calendar text-damkar-red"></i> Masa Usia Pakai Kendaraan (Tahun)</h4>
+                            <div class="grow relative">
+                                <canvas id="chart-fleet-age"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="vehicles-grid-container">
+                        
+                    </div>
+                </div>
+
+                
+                <div id="view-eksekutif" class="space-y-6 hidden">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h3 class="text-2xl font-black text-white">Ringkasan Eksekutif RISKP Kaltim</h3>
+                            <p class="text-sm text-slate-400">Analisis strategis & peta mitigasi risiko terpadu tingkat manajerial.</p>
+                        </div>
+                        <button onclick="window.print()" class="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-sm font-bold transition">
+                            <i class="fa-solid fa-print"></i> Cetak Laporan Strategis
+                        </button>
+                    </div>
+
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                            <span class="text-slate-400 text-xs font-semibold block uppercase tracking-wider">Total Kasus Kebakaran</span>
+                            <h4 class="text-3xl font-extrabold text-white mt-2">100</h4>
+                            <span class="text-[11px] text-slate-500 block mt-1">Hingga Pertengahan 2026</span>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                            <span class="text-slate-400 text-xs font-semibold block uppercase tracking-wider">Rata-rata Waktu Respon</span>
+                            <h4 class="text-3xl font-extrabold text-emerald-400 mt-2">4.5 Menit</h4>
+                            <span class="text-[11px] text-slate-500 block mt-1">Target Nasional: &lt; 15 menit</span>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                            <span class="text-slate-400 text-xs font-semibold block uppercase tracking-wider">Tingkat Penyelamatan</span>
+                            <h4 class="text-3xl font-extrabold text-damkar-orange mt-2">94.5%</h4>
+                            <span class="text-[11px] text-slate-500 block mt-1">Keberhasilan evakuasi korban</span>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                            <span class="text-slate-400 text-xs font-semibold block uppercase tracking-wider">Estimasi Kerugian Material</span>
+                            <h4 class="text-2xl font-extrabold text-damkar-red mt-2.5">Rp 21.163.000.000</h4>
+                            <span class="text-[11px] text-slate-500 block mt-1">Akibat kebakaran di Kaltim</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 h-[340px] flex flex-col">
+                            <h4 class="font-bold text-slate-300 text-sm mb-4"><i class="fa-solid fa-chart-line text-damkar-red mr-1"></i> Grafik Kerugian Material vs Jumlah Kasus (10 Bulan Terakhir)</h4>
+                            <div class="grow relative">
+                                <canvas id="chart-exec-trends"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 h-[340px] flex flex-col">
+                            <h4 class="font-bold text-slate-300 text-sm mb-4"><i class="fa-solid fa-chart-pie text-damkar-orange mr-1"></i> Proporsi Kategori Kejadian Kebakaran</h4>
+                            <div class="grow relative flex justify-center items-center">
+                                <div class="w-[180px] h-[180px]">
+                                    <canvas id="chart-exec-categories"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                        <h4 class="font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+                            <i class="fa-solid fa-circle-exclamation text-damkar-orange"></i> Rekomendasi Rencana Induk Sistem Proteksi Kebakaran (RISPK)
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-300">
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/60">
+                                <h5 class="font-bold text-damkar-red flex items-center gap-1.5 mb-2">
+                                    <i class="fa-solid fa-fire text-xs"></i> 1. Penguatan Infrastruktur Proteksi
+                                </h5>
+                                <p class="text-xs leading-relaxed text-slate-400">Mendorong penambahan titik hydrant kering dan basah khususnya pada area perumahan padat penduduk di Kota Samarinda dan Balikpapan.</p>
+                            </div>
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/60">
+                                <h5 class="font-bold text-damkar-red flex items-center gap-1.5 mb-2">
+                                    <i class="fa-solid fa-shield-cat text-xs"></i> 2. Penyuluhan Kebencanaan Daerah
+                                </h5>
+                                <p class="text-xs leading-relaxed text-slate-400">Pembentukan Kelompok Relawan Pemadam Kebakaran (Redkar) di setiap kelurahan prioritas tinggi berdasarkan Perda Kaltim No. 9 Tahun 2024.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="view-laporan" class="space-y-6 hidden">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h3 class="text-2xl font-black text-white">Laporan & Rencana Anggaran (RAB)</h3>
+                            <p class="text-sm text-slate-400">Rencana anggaran sistem dan monitoring pencetakan data berkala.</p>
+                        </div>
+                        <button onclick="window.print()" class="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition shadow-lg">
+                            <i class="fa-solid fa-file-excel"></i> Ekspor format Excel/PDF
+                        </button>
+                    </div>
+
+                    
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                        <div class="px-5 py-4 bg-slate-900/60 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h4 class="font-bold text-white flex items-center gap-2 text-sm uppercase tracking-wider">
+                                <i class="fa-solid fa-sack-dollar text-damkar-orange"></i> Rencana Anggaran Biaya (RAB) Pembuatan Sistem Full-Version
+                            </h4>
+                            <span class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs px-3 py-1 rounded-lg font-extrabold">Total Alokasi: Rp 302.000.000</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                                <thead>
+                                    <tr class="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                                        <th class="p-4">No</th>
+                                        <th class="p-4">Komponen Kegiatan</th>
+                                        <th class="p-4">Uraian / Rincian</th>
+                                        <th class="p-4 text-center">Volume</th>
+                                        <th class="p-4 text-center">Satuan</th>
+                                        <th class="p-4 text-right">Estimasi Biaya (IDR)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800 text-slate-300">
+                                    <tr>
+                                        <td class="p-4 font-bold text-slate-400">1</td>
+                                        <td class="p-4 font-semibold text-white">Persiapan & Perencanaan</td>
+                                        <td class="p-4 text-slate-400">Pembentukan tim teknis, rapat koordinasi, penyusunan KAK/TOR</td>
+                                        <td class="p-4 text-center">1</td>
+                                        <td class="p-4 text-center">Paket</td>
+                                        <td class="p-4 text-right font-semibold">22.000.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-4 font-bold text-slate-400">2</td>
+                                        <td class="p-4 font-semibold text-white">Analisis Kebutuhan & Desain</td>
+                                        <td class="p-4 text-slate-400">Pengumpulan data kepegawaian, analisis pengguna, desain UI/UX</td>
+                                        <td class="p-4 text-center">1</td>
+                                        <td class="p-4 text-center">Paket</td>
+                                        <td class="p-4 text-right font-semibold">35.000.000</td>
+                                    </tr>
+                                    <tr class="bg-slate-950/20">
+                                        <td class="p-4 font-bold text-slate-400">3</td>
+                                        <td class="p-4 font-semibold text-white">Pengembangan Sistem Informasi</td>
+                                        <td class="p-4 text-slate-400">Pembuatan aplikasi web, backend, database, modul RISPK & kepegawaian</td>
+                                        <td class="p-4 text-center">1</td>
+                                        <td class="p-4 text-center">Paket</td>
+                                        <td class="p-4 text-right font-bold text-damkar-orange">100.000.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-4 font-bold text-slate-400">4</td>
+                                        <td class="p-4 font-semibold text-white">Pengujian & Validasi Sistem</td>
+                                        <td class="p-4 text-slate-400">Uji fungsional, integrasi, keamanan, perbaikan bug</td>
+                                        <td class="p-4 text-center">1</td>
+                                        <td class="p-4 text-center">Paket</td>
+                                        <td class="p-4 text-right font-semibold">18.000.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-4 font-bold text-slate-400">5</td>
+                                        <td class="p-4 font-semibold text-white">Panduan & Dokumentasi Teknis</td>
+                                        <td class="p-4 text-slate-400">Manual pengguna/admin, dokumentasi arsitektur sistem</td>
+                                        <td class="p-4 text-center">1</td>
+                                        <td class="p-4 text-center">Paket</td>
+                                        <td class="p-4 text-right font-semibold">12.000.000</td>
+                                    </tr>
+                                    <tr class="bg-slate-950/20">
+                                        <td class="p-4 font-bold text-slate-400">6</td>
+                                        <td class="p-4 font-semibold text-white">Sosialisasi & Bimtek</td>
+                                        <td class="p-4 text-slate-400">Workshop sosialisasi, pelatihan operator di tingkat Provinsi & Kabupaten/Kota</td>
+                                        <td class="p-4 text-center">10</td>
+                                        <td class="p-4 text-center">Kegiatan</td>
+                                        <td class="p-4 text-right font-semibold">60.000.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-4 font-bold text-slate-400">7</td>
+                                        <td class="p-4 font-semibold text-white">Infrastruktur Server & Domain</td>
+                                        <td class="p-4 text-slate-400">Hosting premium, domain .go.id, SSL, server tahunan, security backup</td>
+                                        <td class="p-4 text-center">1</td>
+                                        <td class="p-4 text-center">Paket</td>
+                                        <td class="p-4 text-right font-semibold">20.000.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-4 font-bold text-slate-400">8</td>
+                                        <td class="p-4 font-semibold text-white">Pendampingan Teknis</td>
+                                        <td class="p-4 text-slate-400">Monitoring sistem, updates, pendampingan awal (6 bulan)</td>
+                                        <td class="p-4 text-center">1</td>
+                                        <td class="p-4 text-center">Paket</td>
+                                        <td class="p-4 text-right font-semibold">25.000.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-4 font-bold text-slate-400">9</td>
+                                        <td class="p-4 font-semibold text-white">Dokumentasi & Pelaporan Akhir</td>
+                                        <td class="p-4 text-slate-400">Laporan teknis, laporan keuangan, serah terima hasil riset/pks</td>
+                                        <td class="p-4 text-center">1</td>
+                                        <td class="p-4 text-center">Paket</td>
+                                        <td class="p-4 text-right font-semibold">10.000.000</td>
+                                    </tr>
+                                    <tr class="bg-slate-950 border-t-2 border-slate-800">
+                                        <td colspan="5" class="p-4 text-right font-extrabold text-white text-sm">TOTAL ANGGARAN (IDR)</td>
+                                        <td class="p-4 text-right font-extrabold text-emerald-400 text-sm">Rp 302.000.000</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <footer class="mt-8 border-t border-slate-900 py-6 text-center text-xs text-slate-500">
+                    &copy; 2026 SIM-PROKAS KALTIM. Dibuat oleh Ronaldi Surya Darma untuk Bidang Kebakaran & Satpol PP Provinsi Kalimantan Timur.<br>
+                    Pembina Teknis: <strong>Ronaldi Surya Darma</strong> (Pemilik).
+                </footer>
+
+            </main>
+        </div>
+    </div>
+
+    
+    <div id="modal-add-personel" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[999] hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h4 class="font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-user-plus text-damkar-red"></i> Tambah Personil Baru</h4>
+                <button onclick="closeModal('modal-add-personel')" class="text-slate-500 hover:text-white"><i class="fa-solid fa-times text-lg"></i></button>
+            </div>
+            
+            <form id="form-add-personel" onsubmit="submitNewPersonel(event)" class="space-y-4 text-sm text-slate-300">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nama Lengkap *</label>
+                        <input type="text" id="add-p-nama" required placeholder="Budi Santoso" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-damkar-red">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">NIP / ID Pegawai *</label>
+                        <input type="text" id="add-p-nip" required placeholder="19850101XXXXXXXX" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-damkar-red">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Jabatan Fungsional *</label>
+                        <select id="add-p-jabatan" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-damkar-red">
+                            <option value="Pemadam Kebakaran Ahli Utama">Pemadam Kebakaran Ahli Utama</option>
+                            <option value="Pemadam Kebakaran Terampil">Pemadam Kebakaran Terampil</option>
+                            <option value="Komandan Regu">Komandan Regu</option>
+                            <option value="Petugas Lapangan">Petugas Lapangan</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Status Keaktifan</label>
+                        <select id="add-p-status" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-damkar-red">
+                            <option value="Aktif">Aktif</option>
+                            <option value="Cuti">Cuti</option>
+                            <option value="Non-Aktif">Non-Aktif</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nomor Telepon *</label>
+                        <input type="text" id="add-p-phone" required placeholder="081212345678" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-damkar-red">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Alamat Email *</label>
+                        <input type="email" id="add-p-email" required placeholder="name@kaltim.go.id" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-damkar-red">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 border-t border-slate-800 pt-4 mt-4">
+                    <button type="button" onclick="closeModal('modal-add-personel')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-damkar-red hover:bg-rose-600 text-white rounded-xl font-bold transition shadow-lg">Simpan Personil</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    
+    <div id="modal-add-incident" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[999] hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h4 class="font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-fire text-damkar-red"></i> Tambah Laporan Kejadian Baru</h4>
+                <button onclick="closeModal('modal-add-incident')" class="text-slate-500 hover:text-white"><i class="fa-solid fa-times text-lg"></i></button>
+            </div>
+            
+            <form id="form-add-incident" onsubmit="submitNewIncident(event)" class="space-y-4 text-sm text-slate-300">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Judul Kejadian *</label>
+                    <input type="text" id="add-i-title" required placeholder="Kebakaran Rumah Pemukiman Padat" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-damkar-red">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Jenis Kejadian *</label>
+                        <select id="add-i-type" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-damkar-red">
+                            <option value="Kebakaran Rumah">Kebakaran Rumah</option>
+                            <option value="Kebakaran Hutan &amp; Lahan">Kebakaran Hutan & Lahan</option>
+                            <option value="Kebakaran Bangunan Komersial">Kebakaran Bangunan Komersial</option>
+                            <option value="Kebakaran Kendaraan">Kebakaran Kendaraan</option>
+                            <option value="Penyelamatan &amp; Evakuasi">Penyelamatan & Evakuasi</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tingkat Bahaya / Prioritas *</label>
+                        <select id="add-i-priority" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-damkar-red">
+                            <option value="Tinggi">Tinggi (Merah)</option>
+                            <option value="Sedang">Sedang (Kuning)</option>
+                            <option value="Rendah">Rendah (Hijau)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Alamat Lokasi Kejadian *</label>
+                    <input type="text" id="add-i-location" required placeholder="Jl. Pelita 7, Sambutan, Samarinda" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-damkar-red">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Kabupaten / Kota *</label>
+                        <select id="add-i-city" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-damkar-red">
+                            <option value="Samarinda">Samarinda</option>
+                            <option value="Balikpapan">Balikpapan</option>
+                            <option value="Kutai Kartanegara">Kutai Kartanegara</option>
+                            <option value="Kutai Timur">Kutai Timur</option>
+                            <option value="Berau">Berau</option>
+\t\t\t    <option value="Paser">Paser</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nama Pelapor / Kontak</label>
+                        <input type="text" id="add-i-reporter" placeholder="Bpk. Burhan (0813XXXXXXXX)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-damkar-red">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Deskripsi Tambahan / Catatan Situasi</label>
+                    <textarea id="add-i-desc" placeholder="Sumber api dideteksi dari gas kompor meledak..." rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-damkar-red"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 border-t border-slate-800 pt-4 mt-4">
+                    <button type="button" onclick="closeModal('modal-add-incident')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-damkar-red hover:bg-rose-600 text-white rounded-xl font-bold transition shadow-lg">Luncurkan Laporan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    
+    <script>
+        
+        let map;
+        let mapMarkers = [];
+
+        
+        let personelDB = [
+            { id: 1, nama: "Munawwar, S.T.,M.Si", nip: "196711291998031003", jabatan: "Kepala Satuan Polisi Pamong Praja Provinsi Kalimantan Timur", status: "Aktif", phone: "0812-3456-7890", email: "munawwar.kasatpolpp@gmail.com", avatar: "MR" },
+            { id: 2, nama: "Robiana Hastawulan, S.S.,M.Si", nip: "197209081998032012", jabatan: "Kepala Bidang Kebakaran Satpol PP Provinsi Kalimantan Timur", status: "Aktif", phone: "0813-4649-6424", email: "robianahasta75@gmail.com", avatar: "RH" },
+            { id: 3, nama: "Ahmad Wijaya", nip: "198712152010121002", jabatan: "Pemadam Kebakaran Terampil", status: "Aktif", phone: "0814-5678-9012", email: "ahmad@kaltim.go.id", avatar: "AW" },
+            { id: 4, nama: "Maya Sari", nip: "199002202015122004", jabatan: "Komandan Regu", status: "Cuti", phone: "0815-6789-0123", email: "maya@kaltim.go.id", avatar: "MS" },
+            { id: 5, nama: "Dewi Lestari", nip: "199205022018122001", jabatan: "Petugas Lapangan", status: "Aktif", phone: "0816-7890-1234", email: "dewi@kaltim.go.id", avatar: "DL" }
+        ];
+
+        
+        let incidentsDB = [
+            {
+                id: "ID-DMK-2026-001",
+                title: "Kebakaran Pemukiman Padat Penduduk",
+                type: "Kebakaran Rumah",
+                status: "Aktif",
+                priority: "Tinggi",
+                location: "Jl. Pelita 7, Sambutan, Samarinda",
+                coords: [-0.4912, 117.1856],
+                reporter: "Burhan (0813-3283-7331)",
+                desc: "Sumber api dari gas meledak, penanganan aktif regu II pimpinan Ahmad.",
+                time: "11:05 WITA",
+                loss: 150000000
+            },
+            {
+                id: "ID-DMK-2026-002",
+                title: "Karhutla Dekat Lahan Pertanian",
+                type: "Kebakaran Hutan & Lahan",
+                status: "Monitoring",
+                priority: "Sedang",
+                location: "Kawasan Hutan Lindung, Balikpapan Utara",
+                coords: [-1.1533, 116.8833],
+                reporter: "Warga Sekitar",
+                desc: "Api berhasil diredam sebagian, menyisakan bara kecil di gambut.",
+                time: "09:12 WITA",
+                loss: 500000000
+            },
+            {
+                id: "ID-DMK-2026-003",
+                title: "Penyelamatan & Evakuasi Banjir Bandang",
+                type: "Penyelamatan & Evakuasi",
+                status: "Aktif",
+                priority: "Tinggi",
+                location: "Jl. Awang Long, Tenggarong",
+                coords: [-0.4144, 116.9856],
+                reporter: "BPBD Kaltim",
+                desc: "Evakuasi lansia terjebak arus banjir setinggi 1 meter.",
+                time: "08:30 WITA",
+                loss: 10000000
+            },
+            {
+                id: "ID-DMK-2026-004",
+                title: "Insiden Kebocoran Gas Industri",
+                type: "Kebakaran Bangunan Komersial",
+                status: "Selesai",
+                priority: "Tinggi",
+                location: "Kawasan Industri Kariangau, Balikpapan",
+                coords: [-1.1711, 116.8233],
+                reporter: "Operator Pabrik",
+                desc: "Kebocoran berhasil ditutup permanen. Situasi aman terkendali.",
+                time: "05:14 WITA",
+                loss: 2500000000
+            }
+        ];
+
+        
+        let vehiclesDB = [
+            { id: 1, name: "Mobil Pemadam Utama 01", plat: "KT 1001 FD", tipe: "Fire Truck", status: "Siap", condition: "Excellent", bensin: 95, driver: "Rudi Hartono", location: "Posko Mugirejo", age: 3 },
+            { id: 2, name: "Ambulans Rescue 01", plat: "KT 1002 FD", tipe: "Ambulance", status: "Bertugas", condition: "Excellent", bensin: 80, driver: "Slamet Rahardjo", location: "Posko Awang Long", age: 2 },
+            { id: 3, name: "Mobil Tangga Udara 01", plat: "KT 1003 FD", tipe: "Ladder Truck", status: "Siap", condition: "Good", bensin: 85, driver: "Heru Prayogo", location: "Posko Palaran", age: 5 },
+            { id: 4, name: "Mobil Penyelamat Serbaguna", plat: "KT 1004 FD", tipe: "Rescue Unit", status: "Servis", condition: "Fair", bensin: 45, driver: "Mulyadi", location: "Sektor Bengkuring", age: 6 }
+        ];
+
+        window.onload = function() {
+            
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            
+            renderAllViews();
+
+            
+            initCharts();
+
+            
+            initMap();
+
+            
+            showToast("Selamat Datang, Pak Ronaldi Surya Darma!", "Aplikasi SIM-PROKAS Kaltim aktif dan siap dioperasikan.", "info");
+        }
+
+        
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID', { hour12: false }) + ' WITA';
+            document.getElementById('system-clock').textContent = timeString;
+        }
+
+        
+        function switchTab(viewId) {
+            
+            const views = ['dashboard', 'personel', 'kejadian', 'kendaraan', 'eksekutif', 'laporan'];
+            views.forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('hidden');
+                document.getElementById(`nav-${v}`).classList.remove('nav-active');
+            });
+
+            
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            document.getElementById(`nav-${viewId}`).classList.add('nav-active');
+
+            
+            if (viewId === 'dashboard' && map) {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 200);
+            }
+
+            
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (!sidebar.classList.contains('-translate-x-full')) {
+                toggleSidebar();
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        
+        function initMap() {
+            
+            map = L.map('main-map', {
+                zoomControl: false
+            }).setView([-0.5022, 117.1536], 8);
+
+            L.control.zoom({
+                position: 'bottomright'
+            }).addTo(map);
+
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            renderMapMarkers();
+        }
+
+        function renderMapMarkers() {
+            
+            mapMarkers.forEach(m => map.removeLayer(m));
+            mapMarkers = [];
+
+            
+            const activeIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div class='beacon-pulse' style='background-color:#ef4444; width:16px; height:16px; border-radius:50%; border:3px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.5);'></div>",
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+
+            const finishedIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div style='background-color:#10b981; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);'></div>",
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+            });
+
+            const monitoringIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div style='background-color:#f59e0b; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);'></div>",
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+            });
+
+            incidentsDB.forEach(inc => {
+                let currentIcon = activeIcon;
+                if (inc.status === 'Selesai') currentIcon = finishedIcon;
+                else if (inc.status === 'Monitoring') currentIcon = monitoringIcon;
+
+                const marker = L.marker(inc.coords, { icon: currentIcon }).addTo(map);
+                
+                const statusBadge = inc.status === 'Aktif' 
+                    ? `<span style="background:#fee2e2; color:#ef4444; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">AKTIF PENANGANAN</span>`
+                    : inc.status === 'Monitoring'
+                        ? `<span style="background:#fef3c7; color:#d97706; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">MONITORING</span>`
+                        : `<span style="background:#d1fae5; color:#10b981; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">SELESAI</span>`;
+
+                const popupContent = `
+                    <div style="font-family:'Inter', sans-serif; min-width:200px;">
+                        <h4 style="margin:0 0 2px 0; font-size:13px; font-weight:800; color:#1e293b;">${inc.title}</h4>
+                        <p style="margin:0 0 8px 0; font-size:11px; color:#64748b;"><i class="fa-solid fa-location-dot"></i> ${inc.location}</p>
+                        <div style="margin-bottom:8px;">${statusBadge}</div>
+                        <p style="margin:0 0 6px 0; font-size:11px; color:#334155; line-height:1.4;">${inc.desc}</p>
+                        <p style="margin:0; font-size:10px; color:#ef4444; font-weight:bold;"><i class="fa-solid fa-clock"></i> Dilaporkan: ${inc.time}</p>
+                    </div>
+                `;
+
+                marker.bindPopup(popupContent);
+                mapMarkers.push(marker);
+            });
+        }
+
+        // --- Initializing ChartJS ---
+        function initCharts() {
+            
+            const ctxTrends = document.getElementById('chart-dashboard-trends').getContext('2d');
+            new Chart(ctxTrends, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'],
+                    datasets: [
+                        {
+                            label: 'Kebakaran Pemukiman',
+                            data: [15, 12, 19, 25, 22, 30, 28, 35, 40, 24, 18, 15],
+                            borderColor: '#ef4444',
+                            borderWidth: 3,
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Karhutla (Hutan/Lahan)',
+                            data: [5, 8, 4, 15, 35, 48, 55, 62, 58, 30, 10, 6],
+                            borderColor: '#f59e0b',
+                            borderWidth: 2,
+                            backgroundColor: 'rgba(245, 158, 11, 0.05)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    scales: {
+                        x: { grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            
+            const ctxTypes = document.getElementById('chart-dashboard-types').getContext('2d');
+            new Chart(ctxTypes, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Kebakaran Rumah', 'Kebakaran Hutan', 'Penyelamatan', 'Lainnya'],
+                    datasets: [{
+                        data: [45, 30, 15, 10],
+                        backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#64748b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    cutout: '75%'
+                }
+            });
+
+            
+            const ctxRanks = document.getElementById('chart-personel-ranks').getContext('2d');
+            new Chart(ctxRanks, {
+                type: 'bar',
+                data: {
+                    labels: ['Kadis/Kabid', 'Kasi', 'Danreg', 'Anggota/Ahli'],
+                    datasets: [{
+                        label: 'Jumlah Anggota',
+                        data: [5, 12, 38, 186],
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            
+            const ctxActive = document.getElementById('chart-personel-active').getContext('2d');
+            new Chart(ctxActive, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Aktif', 'Cuti', 'Non-Aktif'],
+                    datasets: [{
+                        data: [215, 18, 8],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    cutout: '70%'
+                }
+            });
+
+            
+            const ctxFleetFuel = document.getElementById('chart-fleet-fuel').getContext('2d');
+            new Chart(ctxFleetFuel, {
+                type: 'bar',
+                data: {
+                    labels: ['MP Utama 01', 'Ambulans 01', 'MP Tangga 01', 'MP Rescue'],
+                    datasets: [{
+                        label: 'Level Fuel (%)',
+                        data: [95, 80, 85, 45],
+                        backgroundColor: '#ef4444',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+                        y: { max: 100, grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            
+            const ctxFleetCond = document.getElementById('chart-fleet-conditions').getContext('2d');
+            new Chart(ctxFleetCond, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Sangat Baik', 'Baik', 'Cukup', 'Buruk'],
+                    datasets: [{
+                        data: [4, 2, 1, 1],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    cutout: '70%'
+                }
+            });
+
+            
+            const ctxFleetAge = document.getElementById('chart-fleet-age').getContext('2d');
+            new Chart(ctxFleetAge, {
+                type: 'bar',
+                data: {
+                    labels: ['MP Utama 01', 'Ambulans 01', 'MP Tangga 01', 'MP Rescue'],
+                    datasets: [{
+                        label: 'Usia Pakai (Tahun)',
+                        data: [3, 2, 5, 6],
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            
+            const ctxExecTrends = document.getElementById('chart-exec-trends').getContext('2d');
+            new Chart(ctxExecTrends, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt'],
+                    datasets: [
+                        {
+                            label: 'Jumlah Kasus',
+                            data: [8, 14, 11, 22, 18, 25, 29, 32, 24, 18],
+                            borderColor: '#f59e0b',
+                            yAxisID: 'y',
+                            borderWidth: 3,
+                            fill: false
+                        },
+                        {
+                            label: 'Kerugian (Milyar Rp)',
+                            data: [1.2, 2.5, 1.8, 3.4, 2.8, 4.5, 5.1, 6.0, 4.2, 3.1],
+                            borderColor: '#ef4444',
+                            yAxisID: 'y1',
+                            borderWidth: 3,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: { ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            
+            const ctxExecCat = document.getElementById('chart-exec-categories').getContext('2d');
+            new Chart(ctxExecCat, {
+                type: 'pie',
+                data: {
+                    labels: ['Perumahan (45%)', 'Gedung Komersial (15%)', 'Hutan & Lahan (30%)', 'Kendaraan & Lainnya (10%)'],
+                    datasets: [{
+                        data: [45, 15, 30, 10],
+                        backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } }
+                }
+            });
+        }
+
+        
+        function renderAllViews() {
+            renderPersonelGrid();
+            renderIncidentsList();
+            renderVehiclesGrid();
+            renderActivityFeed();
+        }
+
+        
+        function renderActivityFeed() {
+            const feedContainer = document.getElementById('realtime-activity-feed');
+            feedContainer.innerHTML = '';
+
+            incidentsDB.forEach(inc => {
+                const isAktif = inc.status === 'Aktif';
+                const isMonitoring = inc.status === 'Monitoring';
+                
+                const statusColor = isAktif ? 'border-red-500 bg-red-950/20' : isMonitoring ? 'border-amber-500 bg-amber-950/20' : 'border-emerald-500 bg-emerald-950/20';
+                const statusBadge = isAktif 
+                    ? '<span class="bg-red-500/10 text-red-400 border border-red-500/30 text-[9px] font-bold px-2 py-0.5 rounded uppercase">AKTIF</span>'
+                    : isMonitoring ? '<span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[9px] font-bold px-2 py-0.5 rounded uppercase">MONITORING</span>'
+                    : '<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold px-2 py-0.5 rounded uppercase">SELESAI</span>';
+
+                feedContainer.innerHTML += `
+                    <div class="p-3 border-l-4 ${statusColor} rounded-r-xl space-y-2 transition hover:bg-slate-800/40 cursor-pointer" onclick="switchTab('kejadian')">
+                        <div class="flex justify-between items-start">
+                            <h5 class="text-xs font-bold text-slate-100 truncate w-32">${inc.title}</h5>
+                            <span class="text-[10px] text-slate-500 font-mono">${inc.time}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">${inc.desc}</p>
+                        <div class="flex justify-between items-center text-[10px]">
+                            <span class="text-slate-500 font-medium"><i class="fa-solid fa-location-dot"></i> ${inc.location.split(',')[0]}</span>
+                            ${statusBadge}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        
+        function renderPersonelGrid(dataToRender = personelDB) {
+            const container = document.getElementById('personel-grid-container');
+            container.innerHTML = '';
+
+            dataToRender.forEach(p => {
+                const isCuti = p.status === 'Cuti';
+                const isNonAktif = p.status === 'Non-Aktif';
+                const statusColor = isCuti ? 'bg-amber-500/15 text-amber-500 border-amber-500/30' : isNonAktif ? 'bg-red-500/15 text-red-500 border-red-500/30' : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+
+                container.innerHTML += `
+                    <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-5 space-y-4 hover:border-damkar-red/30 transition-all shadow-md relative overflow-hidden group">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-gradient-to-br from-slate-800 to-slate-950 text-white border border-slate-700/50 rounded-xl flex items-center justify-center font-extrabold text-sm ring-2 ring-slate-800 group-hover:ring-damkar-red/50 transition-all">
+                                    ${p.avatar}
+                                </div>
+                                <div class="min-w-0">
+                                    <h5 class="font-bold text-white text-sm truncate w-40">${p.nama}</h5>
+                                    <span class="text-[10px] text-slate-400 block truncate uppercase tracking-wider font-semibold">${p.jabatan}</span>
+                                </div>
+                            </div>
+                            <span class="text-[10px] font-bold px-2.5 py-1 rounded-full border ${statusColor}">
+                                ${p.status}
+                            </span>
+                        </div>
+                        <div class="space-y-1.5 text-xs text-slate-400 border-t border-slate-800/60 pt-3">
+                            <p class="truncate"><i class="fa-solid fa-address-card w-5 text-damkar-orange"></i> NIP: ${p.nip}</p>
+                            <p class="truncate"><i class="fa-solid fa-phone w-5 text-slate-500"></i> ${p.phone}</p>
+                            <p class="truncate"><i class="fa-solid fa-envelope w-5 text-slate-500"></i> ${p.email}</p>
+                        </div>
+                        <div class="flex justify-end gap-2 border-t border-slate-800/40 pt-3">
+                            <button onclick="editPersonel(${p.id})" class="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Ubah data"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+                            <button onclick="deletePersonel(${p.id})" class="p-1.5 text-slate-500 hover:text-damkar-red hover:bg-slate-800 rounded-lg transition" title="Hapus"><i class="fa-solid fa-trash text-xs"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('badge-personel-count').textContent = personelDB.length;
+            document.getElementById('personel-total-text').textContent = personelDB.length;
+        }
+
+        function filterPersonel() {
+            const query = document.getElementById('personel-search').value.toLowerCase();
+            const filterStatus = document.getElementById('personel-filter-status').value;
+
+            const filtered = personelDB.filter(p => {
+                const matchQuery = p.nama.toLowerCase().includes(query) || p.nip.includes(query) || p.jabatan.toLowerCase().includes(query);
+                const matchStatus = filterStatus === 'Semua' || p.status === filterStatus;
+                return matchQuery && matchStatus;
+            });
+
+            renderPersonelGrid(filtered);
+        }
+
+        // 3. Render Incidents Cards
+        function renderIncidentsList(dataToRender = incidentsDB) {
+            const container = document.getElementById('incidents-list-container');
+            container.innerHTML = '';
+
+            dataToRender.forEach(inc => {
+                const isTinggi = inc.priority === 'Tinggi';
+                const isSedang = inc.priority === 'Sedang';
+                
+                const priorityColor = isTinggi ? 'bg-red-500/10 text-red-400 border-red-500/30' : isSedang ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+                const statusColor = inc.status === 'Aktif' ? 'bg-red-600 text-white' : inc.status === 'Monitoring' ? 'bg-amber-500 text-slate-900 font-bold' : 'bg-slate-800 text-slate-400';
+
+                container.innerHTML += `
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 hover:border-damkar-red/30 transition shadow-lg relative">
+                        <div class="flex justify-between items-start gap-3">
+                            <div class="min-w-0">
+                                <span class="text-[10px] font-mono font-bold text-slate-500 block mb-1">ID: ${inc.id}</span>
+                                <h4 class="font-extrabold text-white text-base leading-snug truncate w-72">${inc.title}</h4>
+                            </div>
+                            <span class="text-[10px] font-black px-2.5 py-1 rounded-full ${statusColor} shrink-0 animate-pulse">
+                                ${inc.status}
+                            </span>
+                        </div>
+                        <div class="space-y-1.5 text-xs text-slate-300 border-t border-slate-800/60 pt-3">
+                            <p class="text-slate-400 leading-relaxed">${inc.desc}</p>
+                            <p class="truncate text-slate-400 mt-2"><i class="fa-solid fa-location-dot text-damkar-orange w-5"></i> <strong>Lokasi:</strong> ${inc.location}</p>
+                            <p class="truncate text-slate-400"><i class="fa-solid fa-phone text-slate-500 w-5"></i> <strong>Pelapor:</strong> ${inc.reporter}</p>
+                            <p class="truncate text-slate-400"><i class="fa-solid fa-clock text-slate-500 w-5"></i> <strong>Waktu Laporan:</strong> ${inc.time}</p>
+                            <p class="truncate text-slate-400"><i class="fa-solid fa-money-bill-wave text-emerald-500 w-5"></i> <strong>Estimasi Kerugian:</strong> Rp ${inc.loss.toLocaleString('id-ID')}</p>
+                        </div>
+                        <div class="flex justify-between items-center border-t border-slate-800/50 pt-3">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded border ${priorityColor}">
+                                Prioritas: ${inc.priority}
+                            </span>
+                            <div class="flex gap-2">
+                                <button onclick="solveIncident('${inc.id}')" class="p-1.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white rounded-lg text-xs font-bold transition" title="Tandai Selesai"><i class="fa-solid fa-check"></i> Selesaikan</button>
+                                <button onclick="deleteIncident('${inc.id}')" class="p-1.5 bg-slate-800 hover:bg-red-600 hover:text-white text-slate-500 rounded-lg text-xs transition" title="Hapus Laporan"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filterIncidents() {
+            const query = document.getElementById('incident-search').value.toLowerCase();
+            const filterStatus = document.getElementById('incident-filter-status').value;
+
+            const filtered = incidentsDB.filter(inc => {
+                const matchQuery = inc.title.toLowerCase().includes(query) || inc.location.toLowerCase().includes(query) || inc.id.includes(query);
+                const matchStatus = filterStatus === 'Semua' || inc.status === filterStatus;
+                return matchQuery && matchStatus;
+            });
+
+            renderIncidentsList(filtered);
+        }
+
+        // 4. Render Vehicles Cards
+        function renderVehiclesGrid() {
+            const container = document.getElementById('vehicles-grid-container');
+            container.innerHTML = '';
+
+            vehiclesDB.forEach(v => {
+                const isSiap = v.status === 'Siap';
+                const isBertugas = v.status === 'Bertugas';
+                
+                const statusColor = isSiap ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : isBertugas ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+                const fuelColor = v.bensin > 70 ? 'bg-emerald-500' : v.bensin > 40 ? 'bg-amber-500' : 'bg-red-500';
+
+                container.innerHTML += `
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 hover:border-damkar-red/30 transition shadow-lg relative">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-white text-base">${v.name}</h4>
+                                <span class="text-[10px] font-mono text-slate-500">${v.plat} | ${v.tipe}</span>
+                            </div>
+                            <span class="text-[10px] font-bold px-2.5 py-1 rounded-full border ${statusColor}">
+                                ${v.status}
+                            </span>
+                        </div>
+                        <div class="space-y-3 border-t border-slate-800/60 pt-3">
+                            <!-- Fuel Progress Bar -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs text-slate-400">
+                                    <span>Tingkat Bahan Bakar:</span>
+                                    <span class="font-bold text-white">${v.bensin}%</span>
+                                </div>
+                                <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                                    <div class="${fuelColor} h-2" style="width: ${v.bensin}%"></div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-xs text-slate-400">
+                                <p class="truncate"><i class="fa-solid fa-user-shield w-5 text-slate-500"></i> Driver: <strong>${v.driver}</strong></p>
+                                <p class="truncate"><i class="fa-solid fa-map-location w-5 text-slate-500"></i> ${v.location}</p>
+                                <p class="truncate"><i class="fa-solid fa-calendar text-slate-500 w-5"></i> Usia Pakai: <strong>${v.age} Thn</strong></p>
+                                <p class="truncate"><i class="fa-solid fa-heart-pulse text-slate-500 w-5"></i> Fisik: <strong>${v.condition}</strong></p>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 border-t border-slate-800/40 pt-3">
+                            <button onclick="editVehicleFuel(${v.id})" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold transition flex items-center gap-1"><i class="fa-solid fa-gas-pump text-damkar-orange"></i> Isi Bahan Bakar</button>
+                            <button onclick="toggleVehicleStatus(${v.id})" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold transition flex items-center gap-1"><i class="fa-solid fa-truck-ramp-box text-blue-400"></i> Ganti Status</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // --- Modal Control Functions ---
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // --- Handle Submissions / Actions ---
+
+        // Personel Actions
+        function submitNewPersonel(event) {
+            event.preventDefault();
+
+            const nama = document.getElementById('add-p-nama').value;
+            const nip = document.getElementById('add-p-nip').value;
+            const jabatan = document.getElementById('add-p-jabatan').value;
+            const status = document.getElementById('add-p-status').value;
+            const phone = document.getElementById('add-p-phone').value;
+            const email = document.getElementById('add-p-email').value;
+
+            // Generate Avatar Initials
+            const initials = nama.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+            const newPersonel = {
+                id: personelDB.length + 1,
+                nama,
+                nip,
+                jabatan,
+                status,
+                phone,
+                email,
+                avatar: initials
+            };
+
+            personelDB.unshift(newPersonel);
+            renderPersonelGrid();
+            closeModal('modal-add-personel');
+            document.getElementById('form-add-personel').reset();
+
+            showToast("Sukses!", `Personel ${nama} telah berhasil didaftarkan ke sistem kepegawaian.`, "success");
+        }
+
+        function deletePersonel(id) {
+            const index = personelDB.findIndex(p => p.id === id);
+            if (index !== -1) {
+                const nama = personelDB[index].nama;
+                personelDB.splice(index, 1);
+                renderPersonelGrid();
+                showToast("Dihapus", `Data kepegawaian ${nama} telah dihapus dari sistem.`, "warning");
+            }
+        }
+
+        function editPersonel(id) {
+            showToast("Info", "Fungsi pengeditan personil terbuka. Edit data langsung di form utama.", "info");
+            openModal('modal-add-personel');
+        }
+
+        // Incident Actions (RISKP)
+        function submitNewIncident(event) {
+            event.preventDefault();
+
+            const title = document.getElementById('add-i-title').value;
+            const type = document.getElementById('add-i-type').value;
+            const priority = document.getElementById('add-i-priority').value;
+            const location = document.getElementById('add-i-location').value;
+            const city = document.getElementById('add-i-city').value;
+            const reporter = document.getElementById('add-i-reporter').value || "Masyarakat Umum";
+            const desc = document.getElementById('add-i-desc').value || "Laporan baru masuk, butuh konfirmasi lanjutan.";
+
+            // Preset coords for East Kalimantan based on city
+            let coords = [-0.5022, 117.1536]; // Samarinda defaults
+            if (city === 'Balikpapan') coords = [-1.2653, 116.8961];
+            else if (city === 'Kutai Kartanegara') coords = [-0.4144, 116.9856];
+            else if (city === 'Kutai Timur') coords = [0.8972, 117.5856];
+            else if (city === 'Berau') coords = [2.1481, 117.4856];
+            else if (city === 'Paser') coords = [1.43517, 116.23535];
+
+            const newId = `ID-DMK-2026-0${incidentsDB.length + 1}`;
+            const timeString = new Date().toLocaleTimeString('id-ID', { hour12: false }) + ' WITA';
+
+            const newIncident = {
+                id: newId,
+                title,
+                type,
+                status: "Aktif",
+                priority,
+                location,
+                coords,
+                reporter,
+                desc,
+                time: timeString,
+                loss: Math.floor(Math.random() * 500000000) + 10000000 // Random loss
+            };
+
+            incidentsDB.unshift(newIncident);
+            
+            // Re-render
+            renderIncidentsList();
+            renderActivityFeed();
+            renderMapMarkers();
+            
+            // Re-center map to the new incident coords
+            if (map) {
+                map.setView(coords, 10);
+            }
+
+            closeModal('modal-add-incident');
+            document.getElementById('form-add-incident').reset();
+
+            showToast("ALARM KEBAKARAN!", `Laporan ${title} di ${city} telah dikirim ke Peta Spasial.`, "danger");
+        }
+
+        function solveIncident(id) {
+            const inc = incidentsDB.find(i => i.id === id);
+            if (inc) {
+                inc.status = "Selesai";
+                renderIncidentsList();
+                renderActivityFeed();
+                renderMapMarkers();
+                showToast("Selesai", `Kasus ${inc.title} telah dinyatakan kondusif dan selesai.`, "success");
+            }
+        }
+
+        function deleteIncident(id) {
+            const index = incidentsDB.findIndex(i => i.id === id);
+            if (index !== -1) {
+                const title = incidentsDB[index].title;
+                incidentsDB.splice(index, 1);
+                renderIncidentsList();
+                renderActivityFeed();
+                renderMapMarkers();
+                showToast("Dihapus", `Laporan ${title} telah dihapus dari log sistem.`, "warning");
+            }
+        }
+
+        // --- Special Simulation Action Trigger ---
+        function triggerSimulationAlert() {
+            // Simulate sound or emergency alert visual flashing
+            showToast("KEBAKARAN BARU TERDETEKSI!", "Kebakaran Lahan baru terjadi di Samarinda Utara. Laporan masuk via sensor RISPK!", "danger");
+            
+            // Add custom simulation incident directly
+            const simIncident = {
+                id: `ID-DMK-SIM-${Math.floor(Math.random() * 1000)}`,
+                title: "SIMULASI: Sempaja Utara",
+                type: "Kebakaran Lahan",
+                status: "Aktif",
+                priority: "Tinggi",
+                location: "Kec. Samarinda Utara, Kota Samarinda",
+                coords: [-0.4352, 117.1656],
+                reporter: "Sistem IoT RISPK Kaltim",
+                desc: "Sensor suhu mendeteksi titik api membara mendekati pemukiman. Regu terdekat dikerahkan.",
+                time: new Date().toLocaleTimeString('id-ID', { hour12: false }) + ' WITA',
+                loss: 850000000
+            };
+
+            incidentsDB.unshift(simIncident);
+            
+            // Re-render and navigate
+            renderIncidentsList();
+            renderActivityFeed();
+            renderMapMarkers();
+
+            if (map) {
+                map.setView([-0.4352, 117.1656], 12);
+            }
+
+            // Increment count visual statistics
+            const totalCountNode = document.getElementById('stat-total-kejadian');
+            totalCountNode.textContent = parseInt(totalCountNode.textContent) + 1;
+        }
+
+        // Vehicle Actions
+        function editVehicleFuel(id) {
+            const v = vehiclesDB.find(vh => vh.id === id);
+            if (v) {
+                v.bensin = 100;
+                renderVehiclesGrid();
+                showToast("Bahan Bakar Diisi", `Tangki bahan bakar armada ${v.name} telah diisi penuh (100%).`, "success");
+            }
+        }
+
+        function toggleVehicleStatus(id) {
+            const v = vehiclesDB.find(vh => vh.id === id);
+            if (v) {
+                v.status = v.status === 'Siap' ? 'Bertugas' : v.status === 'Bertugas' ? 'Servis' : 'Siap';
+                renderVehiclesGrid();
+                showToast("Status Diperbarui", `Armada ${v.name} diubah menjadi status: ${v.status}.`, "info");
+            }
+        }
+
+        // --- Toast Notifications System ---
+        function showToast(title, msg, type = "info") {
+            const toastContainer = document.getElementById('toast-container');
+            
+            let colorClasses = "bg-slate-900 text-slate-100 border-slate-700";
+            let icon = "fa-info-circle text-blue-400";
+
+            if (type === "success") {
+                colorClasses = "bg-slate-900 border-emerald-500/50 text-slate-100";
+                icon = "fa-check-circle text-emerald-400";
+            } else if (type === "warning") {
+                colorClasses = "bg-slate-900 border-amber-500/50 text-slate-100";
+                icon = "fa-triangle-exclamation text-amber-400";
+            } else if (type === "danger") {
+                colorClasses = "bg-red-950/90 border-red-600 text-white animate-bounce";
+                icon = "fa-fire text-red-500";
+            }
+
+            const toastId = 'toast-' + Math.random().toString(36).substr(2, 9);
+
+            const toastHTML = `
+                <div id="${toastId}" class="flex items-start gap-3 p-4 rounded-xl border ${colorClasses} shadow-xl transition-all duration-300 transform translate-x-10 opacity-0 pointer-events-auto max-w-sm">
+                    <i class="fa-solid ${icon} text-lg shrink-0 mt-0.5"></i>
+                    <div class="space-y-1">
+                        <h5 class="font-extrabold text-xs uppercase tracking-wider">${title}</h5>
+                        <p class="text-[11px] text-slate-300 leading-relaxed">${msg}</p>
+                    </div>
+                    <button onclick="document.getElementById('${toastId}').remove()" class="text-slate-500 hover:text-white shrink-0 ml-auto"><i class="fa-solid fa-times text-xs"></i></button>
+                </div>
+            `;
+
+            toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+
+            // Trigger slide in
+            setTimeout(() => {
+                const tEl = document.getElementById(toastId);
+                if (tEl) {
+                    tEl.classList.remove('translate-x-10', 'opacity-0');
+                }
+            }, 50);
+
+            // Trigger auto-remove
+            setTimeout(() => {
+                const tEl = document.getElementById(toastId);
+                if (tEl) {
+                    tEl.classList.add('translate-x-10', 'opacity-0');
+                    setTimeout(() => tEl.remove(), 300);
+                }
+            }, 6000);
+        }
+    </script>
+    <script>
+
+google.script.run
+.withSuccessHandler(function(data){
+
+  console.log("DATA DASHBOARD:", data);
+
+  alert(JSON.stringify(data));
+
+document.getElementById("stat-total-personel").innerText = data.personil;
+
+
+ document.getElementById  ("stat-total-kejadian")
+    .innerText = data.kejadian;
+
+
+    document.getElementById("stat-total-kendaraan")
+    .innerText = data.armada;
+
+
+   document.getElementById("stat-total-pos").innerText = data.pos;
+
+console.log("POS:", data.pos);
+
+    document.getElementById("stat-total-korban")
+    .innerText = data.korban;
+
+
+    document.getElementById("stat-total-kerugian")
+    .innerText = data.kerugian;
+
+
+})
+.getDashboardPresentasi();
+})
+
+</script>
+</body>
+</html>

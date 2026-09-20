@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default Deny All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'admin.prov@kaltimprov.go.id' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         getUserData().role == 'admin_provinsi')
+      );
+    }
+
+    function isExecutive() {
+      return isSignedIn() && (
+        request.auth.token.email == 'pimpinan@kaltimprov.go.id' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         getUserData().role == 'pimpinan')
+      );
+    }
+
+    function isRegionOperator(regionId) {
+      return isSignedIn() && (
+        isAdmin() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         getUserData().role == 'operator_daerah' &&
+         getUserData().regionId == regionId)
+      );
+    }
+
+    // User Profiles Collection
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(userId) && (
+        isAdmin() || 
+        (request.auth.uid == userId && incoming().role == 'operator_daerah')
+      );
+      allow update: if isSignedIn() && isValidId(userId) && (
+        isAdmin() || 
+        (request.auth.uid == userId && !incoming().diff(existing()).affectedKeys().hasAny(['role', 'uid']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Official Reports Collection (Lampiran II & III SE Sekda)
+    match /reports/{reportId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(reportId) && (
+        isAdmin() || isRegionOperator(incoming().regionId)
+      );
+      allow update: if isSignedIn() && isValidId(reportId) && (
+        isAdmin() || (
+          isRegionOperator(existing().regionId) &&
+          existing().status != 'VERIFIED'
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Live Emergency Incidents Collection
+    match /incidents/{incidentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(incidentId);
+      allow update: if isSignedIn() && isValidId(incidentId);
+      allow delete: if isAdmin();
+    }
+  }
+}

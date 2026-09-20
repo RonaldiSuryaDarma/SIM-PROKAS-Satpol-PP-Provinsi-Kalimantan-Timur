@@ -1,0 +1,8 @@
+{
+  "name": "SIMPROKAS KALTIM",
+  "description": "Sistem Informasi Manajemen Profil dan Operasional Kebakaran & Penyelamatan se-Kalimantan Timur sesuai Surat Edaran Sekda Prov. Kaltim No. 300.1/3326/SATPOL.PP-IV, dilengkapi RBAC 10 Kab/Kota, sinkronisasi data instan, analitik SPM, cetak PDF resmi, dan modul migrasi Diskominfo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

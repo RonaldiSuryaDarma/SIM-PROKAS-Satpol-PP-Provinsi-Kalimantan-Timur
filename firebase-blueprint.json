@@ -1,0 +1,89 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with role-based access control for Satpol PP / Damkar Prov Kaltim and 10 Kab/Kota",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["admin_provinsi", "pimpinan", "operator_daerah"] },
+        "regionId": { "type": "string", "maxLength": 50, "description": "Region ID or 'kaltim' for provincial users" },
+        "regionName": { "type": "string", "maxLength": 100 },
+        "nip": { "type": "string", "maxLength": 30 },
+        "jabatan": { "type": "string", "maxLength": 100 },
+        "instansi": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "displayName", "role", "regionId"]
+    },
+    "OfficialReport": {
+      "title": "OfficialReport",
+      "description": "Official Fire & Rescue periodic report compliant with SE Sekda Prov Kaltim No. 300.1/3326/SATPOL.PP-IV (Lampiran II & III)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Deterministic ID: report_{regionId}_{year}_{period}" },
+        "regionId": { "type": "string", "maxLength": 50 },
+        "regionName": { "type": "string", "maxLength": 100 },
+        "period": { "type": "string", "enum": ["SEMESTER_1", "SEMESTER_2"] },
+        "year": { "type": "number" },
+        "status": { "type": "string", "enum": ["DRAFT", "SUBMITTED", "VERIFIED", "REVISED"] },
+        "submittedAt": { "type": "string" },
+        "submittedBy": { "type": "string" },
+        "verifiedAt": { "type": "string" },
+        "verifiedBy": { "type": "string" },
+        "verificationNotes": { "type": "string", "maxLength": 500 },
+        "bagianA": { "type": "object" },
+        "bagianB": { "type": "object" },
+        "bagianC": { "type": "object" },
+        "bagianD": { "type": "object" },
+        "bagianE": { "type": "object" },
+        "bagianF": { "type": "object" },
+        "bagianG": { "type": "object" },
+        "updatedAt": { "type": "string" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["id", "regionId", "period", "year", "status"]
+    },
+    "GasIncident": {
+      "title": "GasIncident",
+      "description": "Realtime fire or rescue emergency incident report across East Kalimantan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 150 },
+        "type": { "type": "string", "enum": ["Kebakaran Pemukiman", "Kebakaran Hutan/Lahan", "Penyelamatan/Rescue", "Bencana Alam", "Gas Bocor / Hazmat", "Lain-lain"] },
+        "status": { "type": "string", "enum": ["Aktif", "Investigasi", "Selesai", "Dibatalkan"] },
+        "regionId": { "type": "string", "maxLength": 50 },
+        "location": { "type": "string", "maxLength": 250 },
+        "coordinates": { "type": "array" },
+        "unitsDeployed": { "type": "number" },
+        "reporterName": { "type": "string", "maxLength": 100 },
+        "reporterPhone": { "type": "string", "maxLength": 30 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "timestamp": { "type": "string" },
+        "responseMinutes": { "type": "number" },
+        "spmAchieved": { "type": "boolean" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["id", "title", "type", "status", "regionId", "location", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profiles with role-based access for province admin, executives, and 10 regional operators"
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/OfficialReport" },
+      "description": "Periodic official SE Sekda reports indexed by region, year, and semester"
+    },
+    "/incidents/{incidentId}": {
+      "schema": { "$ref": "#/entities/GasIncident" },
+      "description": "Live emergency incidents and operations logged by operators and field units"
+    }
+  }
+}
