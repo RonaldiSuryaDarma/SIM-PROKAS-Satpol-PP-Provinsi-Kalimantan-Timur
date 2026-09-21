@@ -160,7 +160,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
   const completeness = calculateCompleteness();
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className="space-y-6 pb-16 report-form-container text-slate-900">
       
       {/* Header Bar */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
@@ -486,7 +486,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 value={report.pengisi.nama}
                 onChange={(e) => handleFieldChange('pengisi', 'nama', e.target.value)}
                 placeholder="Contoh: Ahmad Faisal, S.AP."
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
             </div>
             <div>
@@ -496,7 +496,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 value={report.pengisi.nip}
                 onChange={(e) => handleFieldChange('pengisi', 'nip', e.target.value)}
                 placeholder="19850714 201001 1 012"
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400 font-mono"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 font-mono font-medium"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -507,7 +507,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   value={report.pengisi.jabatan}
                   onChange={(e) => handleFieldChange('pengisi', 'jabatan', e.target.value)}
                   placeholder="Kasi Ops / Analis Kebakaran"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
               </div>
               <div>
@@ -517,7 +517,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   value={report.pengisi.noHp || ''}
                   onChange={(e) => handleFieldChange('pengisi', 'noHp', e.target.value)}
                   placeholder="0812-xxxx-xxxx"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
               </div>
             </div>
@@ -542,7 +542,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 value={report.pejabat.nama}
                 onChange={(e) => handleFieldChange('pejabat', 'nama', e.target.value)}
                 placeholder="Contoh: H. Hendra AH, S.Sos., M.Si."
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
             </div>
             <div>
@@ -552,7 +552,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 value={report.pejabat.nip}
                 onChange={(e) => handleFieldChange('pejabat', 'nip', e.target.value)}
                 placeholder="19690412 199303 1 008"
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400 font-mono"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 font-mono font-medium"
               />
             </div>
             <div>
@@ -562,7 +562,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 value={report.pejabat.jabatan}
                 onChange={(e) => handleFieldChange('pejabat', 'jabatan', e.target.value)}
                 placeholder="Kepala Dinas Pemadam Kebakaran dan Penyelamatan"
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
             </div>
           </div>
@@ -588,7 +588,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 type="text"
                 value={report.bagianA.namaInstansi}
                 onChange={(e) => handleFieldChange('bagianA', 'namaInstansi', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
             </div>
 
@@ -597,7 +597,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
               <select
                 value={report.bagianA.bentukKelembagaan}
                 onChange={(e) => handleFieldChange('bagianA', 'bentukKelembagaan', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium"
               >
                 <option value="Dinas Pemadam Kebakaran dan Penyelamatan">Dinas Pemadam Kebakaran dan Penyelamatan</option>
                 <option value="Dinas Pemadam Kebakaran">Dinas Pemadam Kebakaran</option>
@@ -632,7 +632,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianA.jumlahMako}
                 onChange={(e) => handleFieldChange('bagianA', 'jumlahMako', Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
             </div>
 
@@ -644,7 +644,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   min="0"
                   value={report.bagianA.jumlahPosSektor}
                   onChange={(e) => handleFieldChange('bagianA', 'jumlahPosSektor', Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
               </div>
               <div>
@@ -654,7 +654,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   min="0"
                   value={report.bagianA.jumlahPos}
                   onChange={(e) => handleFieldChange('bagianA', 'jumlahPos', Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
               </div>
             </div>
@@ -690,7 +690,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                       min="0"
                       value={report.bagianB.pnsStruktural}
                       onChange={(e) => handleFieldChange('bagianB', 'pnsStruktural', Number(e.target.value))}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-amber-400"
                     />
                   </div>
                   <div>
@@ -700,7 +700,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                       min="0"
                       value={report.bagianB.pnsFungsional}
                       onChange={(e) => handleFieldChange('bagianB', 'pnsFungsional', Number(e.target.value))}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-amber-400"
                     />
                   </div>
                   <div>
@@ -710,7 +710,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                       min="0"
                       value={report.bagianB.pnsPelaksana}
                       onChange={(e) => handleFieldChange('bagianB', 'pnsPelaksana', Number(e.target.value))}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-amber-400"
                     />
                   </div>
                 </div>
@@ -729,7 +729,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                       min="0"
                       value={report.bagianB.pppk}
                       onChange={(e) => handleFieldChange('bagianB', 'pppk', Number(e.target.value))}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-amber-400"
                     />
                   </div>
                   <div>
@@ -739,7 +739,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                       min="0"
                       value={report.bagianB.pppkParuhWaktu}
                       onChange={(e) => handleFieldChange('bagianB', 'pppkParuhWaktu', Number(e.target.value))}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-amber-400"
                     />
                   </div>
                 </div>
@@ -754,7 +754,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   min="0"
                   value={report.bagianB.nonAsn}
                   onChange={(e) => handleFieldChange('bagianB', 'nonAsn', Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
               </div>
             </div>
@@ -774,7 +774,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                     min="0"
                     value={report.bagianB.sertifikasi.instruktur}
                     onChange={(e) => handleFieldChange('bagianB', 'sertifikasi', Number(e.target.value), 'instruktur')}
-                    className="w-24 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-right focus:ring-1 focus:ring-amber-400"
+                    className="w-24 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium text-right focus:ring-1 focus:ring-amber-400"
                   />
                 </div>
                 <div className="flex items-center justify-between gap-2">
@@ -784,7 +784,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                     min="0"
                     value={report.bagianB.sertifikasi.inspektur}
                     onChange={(e) => handleFieldChange('bagianB', 'sertifikasi', Number(e.target.value), 'inspektur')}
-                    className="w-24 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-right focus:ring-1 focus:ring-amber-400"
+                    className="w-24 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium text-right focus:ring-1 focus:ring-amber-400"
                   />
                 </div>
                 <div className="flex items-center justify-between gap-2">
@@ -794,7 +794,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                     min="0"
                     value={report.bagianB.sertifikasi.mfr}
                     onChange={(e) => handleFieldChange('bagianB', 'sertifikasi', Number(e.target.value), 'mfr')}
-                    className="w-24 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-right focus:ring-1 focus:ring-amber-400"
+                    className="w-24 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium text-right focus:ring-1 focus:ring-amber-400"
                   />
                 </div>
                 <div className="flex items-center justify-between gap-2">
@@ -804,7 +804,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                     min="0"
                     value={report.bagianB.sertifikasi.rescue}
                     onChange={(e) => handleFieldChange('bagianB', 'sertifikasi', Number(e.target.value), 'rescue')}
-                    className="w-24 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-right focus:ring-1 focus:ring-amber-400"
+                    className="w-24 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium text-right focus:ring-1 focus:ring-amber-400"
                   />
                 </div>
               </div>
@@ -833,7 +833,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianC.mobilDamkar}
                 onChange={(e) => handleFieldChange('bagianC', 'mobilDamkar', Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-amber-400"
               />
             </div>
 
@@ -844,7 +844,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianC.mobilTangki}
                 onChange={(e) => handleFieldChange('bagianC', 'mobilTangki', Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-amber-400"
               />
             </div>
 
@@ -855,7 +855,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianC.mobilTangga}
                 onChange={(e) => handleFieldChange('bagianC', 'mobilTangga', Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-amber-400"
               />
             </div>
 
@@ -866,7 +866,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianC.mobilRescue}
                 onChange={(e) => handleFieldChange('bagianC', 'mobilRescue', Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-amber-400"
               />
             </div>
 
@@ -878,7 +878,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 value={report.bagianC.kendaraanLainnya}
                 onChange={(e) => handleFieldChange('bagianC', 'kendaraanLainnya', Number(e.target.value))}
                 placeholder="Roda 2, 3, 4"
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:ring-1 focus:ring-amber-400"
               />
             </div>
           </div>
@@ -904,7 +904,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianD.jumlahRelawan}
                 onChange={(e) => handleFieldChange('bagianD', 'jumlahRelawan', Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
             </div>
             <div>
@@ -914,7 +914,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianD.jumlahDesaKelurahan}
                 onChange={(e) => handleFieldChange('bagianD', 'jumlahDesaKelurahan', Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
             </div>
           </div>
@@ -975,7 +975,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                     min="0"
                     value={report.bagianE.sebabGasKompor}
                     onChange={(e) => handleFieldChange('bagianE', 'sebabGasKompor', Number(e.target.value))}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 focus:ring-1 focus:ring-amber-400"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
                   />
                 </div>
                 <div>
@@ -985,7 +985,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                     min="0"
                     value={report.bagianE.sebabListrik}
                     onChange={(e) => handleFieldChange('bagianE', 'sebabListrik', Number(e.target.value))}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 focus:ring-1 focus:ring-amber-400"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
                   />
                 </div>
                 <div>
@@ -995,7 +995,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                     min="0"
                     value={report.bagianE.sebabBahanBakar}
                     onChange={(e) => handleFieldChange('bagianE', 'sebabBahanBakar', Number(e.target.value))}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 focus:ring-1 focus:ring-amber-400"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
                   />
                 </div>
                 <div>
@@ -1005,7 +1005,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                     min="0"
                     value={report.bagianE.sebabKelalaian}
                     onChange={(e) => handleFieldChange('bagianE', 'sebabKelalaian', Number(e.target.value))}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 focus:ring-1 focus:ring-amber-400"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
                   />
                 </div>
                 <div className="col-span-2">
@@ -1015,7 +1015,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                     min="0"
                     value={report.bagianE.sebabLainnya}
                     onChange={(e) => handleFieldChange('bagianE', 'sebabLainnya', Number(e.target.value))}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 focus:ring-1 focus:ring-amber-400"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
                   />
                 </div>
               </div>
@@ -1044,7 +1044,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianF.kecelakaanTransportasi}
                 onChange={(e) => handleFieldChange('bagianF', 'kecelakaanTransportasi', Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:ring-1 focus:ring-amber-400"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
               />
             </div>
 
@@ -1055,7 +1055,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianF.waterRescue}
                 onChange={(e) => handleFieldChange('bagianF', 'waterRescue', Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:ring-1 focus:ring-amber-400"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
               />
             </div>
 
@@ -1066,7 +1066,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianF.animalRescue}
                 onChange={(e) => handleFieldChange('bagianF', 'animalRescue', Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:ring-1 focus:ring-amber-400"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
               />
             </div>
 
@@ -1077,7 +1077,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianF.ketinggian}
                 onChange={(e) => handleFieldChange('bagianF', 'ketinggian', Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:ring-1 focus:ring-amber-400"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
               />
             </div>
 
@@ -1088,7 +1088,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianF.bangunanRuntuh}
                 onChange={(e) => handleFieldChange('bagianF', 'bangunanRuntuh', Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:ring-1 focus:ring-amber-400"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
               />
             </div>
 
@@ -1099,7 +1099,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianF.pohonTumbang}
                 onChange={(e) => handleFieldChange('bagianF', 'pohonTumbang', Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:ring-1 focus:ring-amber-400"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
               />
             </div>
 
@@ -1110,7 +1110,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianF.percobaanBunuhDiri}
                 onChange={(e) => handleFieldChange('bagianF', 'percobaanBunuhDiri', Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:ring-1 focus:ring-amber-400"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
               />
             </div>
 
@@ -1121,7 +1121,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianF.pelepasanCincin}
                 onChange={(e) => handleFieldChange('bagianF', 'pelepasanCincin', Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:ring-1 focus:ring-amber-400"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
               />
             </div>
 
@@ -1132,7 +1132,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 min="0"
                 value={report.bagianF.operasiLainnya}
                 onChange={(e) => handleFieldChange('bagianF', 'operasiLainnya', Number(e.target.value))}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:ring-1 focus:ring-amber-400"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:ring-1 focus:ring-amber-400"
               />
             </div>
           </div>
@@ -1189,7 +1189,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                     min="0"
                     value={report.bagianG.korbanLukaBakar}
                     onChange={(e) => handleFieldChange('bagianG', 'korbanLukaBakar', Number(e.target.value))}
-                    className="w-24 px-2 py-1 rounded border border-slate-200 bg-white text-right"
+                    className="w-24 px-2 py-1 rounded border border-slate-200 bg-white text-slate-900 font-medium text-right"
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -1199,7 +1199,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                     min="0"
                     value={report.bagianG.korbanLukaFisikLainnya}
                     onChange={(e) => handleFieldChange('bagianG', 'korbanLukaFisikLainnya', Number(e.target.value))}
-                    className="w-24 px-2 py-1 rounded border border-slate-200 bg-white text-right"
+                    className="w-24 px-2 py-1 rounded border border-slate-200 bg-white text-slate-900 font-medium text-right"
                   />
                 </div>
               </div>
@@ -1271,7 +1271,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   min="0"
                   value={report.bagianH.bangunanRendah}
                   onChange={(e) => handleFieldChange('bagianH', 'bangunanRendah', Number(e.target.value))}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium"
                 />
               </div>
               <div>
@@ -1296,7 +1296,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   min="0"
                   value={report.bagianH.bangunanMenengah}
                   onChange={(e) => handleFieldChange('bagianH', 'bangunanMenengah', Number(e.target.value))}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium"
                 />
               </div>
               <div>
@@ -1321,7 +1321,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   min="0"
                   value={report.bagianH.bangunanTinggi}
                   onChange={(e) => handleFieldChange('bagianH', 'bangunanTinggi', Number(e.target.value))}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium"
                 />
               </div>
               <div>
@@ -1405,7 +1405,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                 value={revisionNotesInput}
                 onChange={(e) => setRevisionNotesInput(e.target.value)}
                 placeholder="Tuliskan catatan perbaikan (contoh: Lampiran sarana prasarana Bagian C unit mobil supply mohon disesuaikan dengan BPKB, dan total korban jiwa Bagian G perlu konfirmasi ulang)..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 font-medium text-xs focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               />
             </div>
 

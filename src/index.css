@@ -34,3 +34,29 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* Pastikan tulisan isian form pada Lampiran II dan III selalu berwarna hitam pekat / dark slate */
+.report-form-container input,
+.report-form-container textarea,
+.report-form-container select {
+  color: #0f172a !important;
+  background-color: #ffffff;
+}
+
+.report-form-container input::placeholder,
+.report-form-container textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Khusus untuk teks angka hijau & merah pada Bagian E dan G */
+.report-form-container input.text-emerald-900,
+.report-form-container input.text-emerald-800,
+.report-form-container input.text-emerald-700 {
+  color: #065f46 !important;
+}
+
+.report-form-container input.text-rose-900,
+.report-form-container input.text-rose-800,
+.report-form-container input.text-rose-700 {
+  color: #9f1239 !important;
+}
