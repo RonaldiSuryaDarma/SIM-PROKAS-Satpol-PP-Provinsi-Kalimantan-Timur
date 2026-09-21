@@ -26,6 +26,8 @@ interface ReportFormProps {
   userRole: UserRole;
   userSession?: UserSession;
   onGoToPdf: () => void;
+  onSelectRegion?: (regionId: string) => void;
+  onSelectPeriod?: (period: ReportPeriod) => void;
 }
 
 export const ReportForm: React.FC<ReportFormProps> = ({
@@ -33,7 +35,9 @@ export const ReportForm: React.FC<ReportFormProps> = ({
   period,
   userRole,
   userSession,
-  onGoToPdf
+  onGoToPdf,
+  onSelectRegion,
+  onSelectPeriod
 }) => {
   const [report, setReport] = useState<DamkarReport>(() => 
     storageService.getReport(regionId, period, 2026)
@@ -60,7 +64,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
 
   const handleFieldChange = (section: string, field: string, value: any, subfield?: string) => {
     setReport(prev => {
-      const updated = { ...prev };
+      const updated = JSON.parse(JSON.stringify(prev));
       if (subfield) {
         (updated as any)[section][field][subfield] = value;
       } else if (section) {
@@ -180,6 +184,52 @@ export const ReportForm: React.FC<ReportFormProps> = ({
             <p className="text-xs text-slate-500 mt-1">
               Periode {period === 'SEMESTER_1' ? 'Semester I (Januari s.d Juni 2026)' : 'Semester II (Januari s.d Desember 2026 - Akumulasi)'}
             </p>
+
+            {userRole === 'admin_provinsi' && onSelectRegion && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 bg-slate-100 p-2 rounded-xl border border-slate-200">
+                <span className="text-xs font-bold text-slate-700">
+                  Pilih Wilayah (Super Admin):
+                </span>
+                <select
+                  value={regionId}
+                  onChange={(e) => onSelectRegion(e.target.value)}
+                  className="text-xs font-bold bg-white text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                >
+                  {REGIONS_KALTIM.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+
+                {onSelectPeriod && (
+                  <div className="flex items-center gap-1 sm:ml-auto">
+                    <button
+                      type="button"
+                      onClick={() => onSelectPeriod('SEMESTER_1')}
+                      className={`text-xs px-2.5 py-1 rounded-lg font-bold transition ${
+                        period === 'SEMESTER_1'
+                          ? 'bg-rose-600 text-white shadow-sm'
+                          : 'bg-white text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      Sem. I (Lamp. II)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSelectPeriod('SEMESTER_2')}
+                      className={`text-xs px-2.5 py-1 rounded-lg font-bold transition ${
+                        period === 'SEMESTER_2'
+                          ? 'bg-rose-600 text-white shadow-sm'
+                          : 'bg-white text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      Sem. II (Lamp. III)
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">

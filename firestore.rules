@@ -16,9 +16,24 @@ service cloud.firestore {
       allow read, write: if isValidId(incidentId);
     }
 
+    // Vehicle Fleet Collection (Kendaraan Operasional & Armada Damkar)
+    match /vehicles/{vehicleId} {
+      allow read, write: if isValidId(vehicleId);
+    }
+
+    // Personnel Roster Collection (Personil & Petugas Damkar se-Kaltim)
+    match /personnel/{personnelId} {
+      allow read, write: if isValidId(personnelId);
+    }
+
     // User Profiles and Session Sync
     match /users/{userId} {
       allow read, write: if isValidId(userId);
+    }
+
+    // System Settings and Custom Passwords
+    match /settings/{settingId} {
+      allow read, write: if isValidId(settingId);
     }
 
     // System Audit Logs

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldAlert, 
   CheckCircle2, 
@@ -37,6 +37,14 @@ export const ProvinsiVerification: React.FC<ProvinsiVerificationProps> = ({
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [revisionNote, setRevisionNote] = useState('');
   const [activeTab, setActiveTab] = useState<'monitoring' | 'rekapitulasi' | 'audit'>('monitoring');
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const unsub = storageService.subscribe(() => {
+      setTick(t => t + 1);
+    });
+    return unsub;
+  }, []);
 
   const allReports = REGIONS_KALTIM.map(reg => ({
     region: reg,

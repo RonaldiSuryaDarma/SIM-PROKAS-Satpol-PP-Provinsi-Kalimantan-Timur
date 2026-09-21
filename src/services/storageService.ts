@@ -92,26 +92,66 @@ class StorageService {
 
   private async initFirestoreSync() {
     try {
-      await validateFirestoreConnection();
-
-      // Listen to real-time updates from Cloud Firestore
+      // Listen to real-time reports updates from Cloud Firestore
       onSnapshot(collection(db, 'reports'), (snapshot) => {
         if (!snapshot.empty) {
           snapshot.docs.forEach(docSnap => {
-            const data = docSnap.data() as DamkarReport;
-            if (data && data.id) {
-              this.reportsCache.set(data.id, data);
+            const remoteData = docSnap.data() as DamkarReport;
+            if (remoteData && remoteData.id) {
+              const localData = this.reportsCache.get(remoteData.id);
+              if (!localData) {
+                this.reportsCache.set(remoteData.id, remoteData);
+              } else {
+                const remoteTime = remoteData.lastUpdated ? new Date(remoteData.lastUpdated).getTime() : 0;
+                const localTime = localData.lastUpdated ? new Date(localData.lastUpdated).getTime() : 0;
+                if (remoteTime >= localTime) {
+                  this.reportsCache.set(remoteData.id, remoteData);
+                } else if (localTime > remoteTime) {
+                  // Local is newer! Push to Cloud Firestore so the cloud has latest edits
+                  const sanitized = JSON.parse(JSON.stringify(localData));
+                  setDoc(doc(db, 'reports', remoteData.id), sanitized, { merge: true }).catch(console.warn);
+                }
+              }
             }
           });
+
+          // Check if there are local reports not yet in Firestore
+          this.reportsCache.forEach((report, id) => {
+            const foundInSnapshot = snapshot.docs.some(d => d.id === id);
+            if (!foundInSnapshot) {
+              const sanitized = JSON.parse(JSON.stringify(report));
+              setDoc(doc(db, 'reports', id), sanitized, { merge: true }).catch(console.warn);
+            }
+          });
+
           this.persistImmediate();
           this.setSyncState('synced', 0);
           this.notify();
         } else {
-          // If empty in cloud, seed baseline reports
+          // If empty in cloud, seed baseline reports from current cache
           this.seedFirestoreBatch();
         }
       }, (err) => {
         console.warn('Firestore real-time listener notice (using local cache):', err.message);
+      });
+
+      // Listen to real-time audit logs
+      onSnapshot(collection(db, 'audit_logs'), (snapshot) => {
+        if (!snapshot.empty) {
+          const logs: AuditLogItem[] = [];
+          snapshot.forEach(docSnap => {
+            const logItem = docSnap.data() as AuditLogItem;
+            if (logItem && logItem.id) {
+              logs.push(logItem);
+            }
+          });
+          logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          this.auditLogs = logs.slice(0, 100);
+          this.persistAuditImmediate();
+          this.notify();
+        }
+      }, (err) => {
+        console.warn('Audit logs listener notice:', err.message);
       });
     } catch (e) {
       console.warn('Firestore initial sync notice:', e);
@@ -121,12 +161,12 @@ class StorageService {
   private async seedFirestoreBatch() {
     try {
       const batch = writeBatch(db);
-      INITIAL_REPORTS.forEach(r => {
-        const ref = doc(db, 'reports', r.id);
-        batch.set(ref, r);
+      this.reportsCache.forEach((r, id) => {
+        const ref = doc(db, 'reports', id);
+        batch.set(ref, r, { merge: true });
       });
       await batch.commit();
-      console.log('Seeded initial 10 regions reports to Cloud Firestore successfully.');
+      console.log('Seeded reports to Cloud Firestore successfully.');
     } catch (err) {
       console.warn('Error seeding reports to Firestore:', err);
     }
@@ -206,6 +246,14 @@ class StorageService {
     };
     this.auditLogs.unshift(item);
     this.persistAuditImmediate();
+
+    try {
+      setDoc(doc(db, 'audit_logs', item.id), item, { merge: true }).catch(err => {
+        console.warn('Firestore audit log write notice:', err);
+      });
+    } catch (e) {
+      console.warn('Firestore audit log notice:', e);
+    }
   }
 
   public getAuditLogs(): AuditLogItem[] {

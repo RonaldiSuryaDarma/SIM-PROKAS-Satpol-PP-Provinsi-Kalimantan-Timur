@@ -44,17 +44,13 @@ export default function App() {
   const [syncState, setSyncState] = useState<SyncState>(storageService.getSyncState());
   const [flyToCoords, setFlyToCoords] = useState<[number, number] | null>(null);
 
-  // App databases initialized from gasAppData or localStorage
+  // App databases initialized from localStorage or defaults
   const [incidents, setIncidents] = useState<GasIncident[]>(() => {
-    // Clear legacy keys
-    try {
-      localStorage.removeItem('simprokas_gas_incidents');
-    } catch (e) {}
     const saved = localStorage.getItem('simprokas_gas_incidents_clean_v1');
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && !parsed.some(i => i.id === 'ID-DMK-2026-001')) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
       } catch (e) { }
@@ -63,14 +59,11 @@ export default function App() {
   });
 
   const [vehicles, setVehicles] = useState<GasVehicle[]>(() => {
-    try {
-      localStorage.removeItem('simprokas_gas_vehicles');
-    } catch (e) {}
     const saved = localStorage.getItem('simprokas_gas_vehicles_clean_v1');
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && !parsed.some(v => v.plat === 'KT 1001 FD')) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
       } catch (e) { }
@@ -79,14 +72,11 @@ export default function App() {
   });
 
   const [personnel, setPersonnel] = useState<GasPersonel[]>(() => {
-    try {
-      localStorage.removeItem('simprokas_gas_personnel');
-    } catch (e) {}
     const saved = localStorage.getItem('simprokas_gas_personnel_clean_v1');
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && !parsed.some(p => p.nama?.includes('Munawwar') || p.nama?.includes('Ahmad Wijaya'))) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
       } catch (e) { }
@@ -154,6 +144,46 @@ export default function App() {
     }
   }, []);
 
+  // Listen to Firestore real-time vehicles collection
+  useEffect(() => {
+    try {
+      const unsub = onSnapshot(collection(db, 'vehicles'), (snapshot) => {
+        if (!snapshot.empty) {
+          const list: GasVehicle[] = [];
+          snapshot.forEach(docSnap => list.push(docSnap.data() as GasVehicle));
+          if (list.length > 0) {
+            setVehicles(list);
+          }
+        }
+      }, (err) => {
+        console.warn('Firestore vehicles listener notice:', err);
+      });
+      return () => unsub();
+    } catch (err) {
+      console.warn('Vehicles subscription notice:', err);
+    }
+  }, []);
+
+  // Listen to Firestore real-time personnel collection
+  useEffect(() => {
+    try {
+      const unsub = onSnapshot(collection(db, 'personnel'), (snapshot) => {
+        if (!snapshot.empty) {
+          const list: GasPersonel[] = [];
+          snapshot.forEach(docSnap => list.push(docSnap.data() as GasPersonel));
+          if (list.length > 0) {
+            setPersonnel(list);
+          }
+        }
+      }, (err) => {
+        console.warn('Firestore personnel listener notice:', err);
+      });
+      return () => unsub();
+    } catch (err) {
+      console.warn('Personnel subscription notice:', err);
+    }
+  }, []);
+
   // Persist local app state changes
   useEffect(() => {
     localStorage.setItem('simprokas_gas_incidents_clean_v1', JSON.stringify(incidents));
@@ -207,6 +237,28 @@ export default function App() {
       });
     } catch (e) {
       console.warn('Firestore incident error:', e);
+    }
+  };
+
+  // Sync vehicle to Firestore helper
+  const syncVehicleToFirestore = (vehicle: GasVehicle) => {
+    try {
+      setDoc(doc(db, 'vehicles', String(vehicle.id)), vehicle, { merge: true }).catch(err => {
+        console.warn('Firestore vehicle write notice:', err);
+      });
+    } catch (e) {
+      console.warn('Firestore vehicle error:', e);
+    }
+  };
+
+  // Sync personnel to Firestore helper
+  const syncPersonelToFirestore = (person: GasPersonel) => {
+    try {
+      setDoc(doc(db, 'personnel', String(person.id)), person, { merge: true }).catch(err => {
+        console.warn('Firestore personnel write notice:', err);
+      });
+    } catch (e) {
+      console.warn('Firestore personnel error:', e);
     }
   };
 
@@ -277,7 +329,9 @@ export default function App() {
   const handleRefillFuel = (id: number) => {
     setVehicles(prev => prev.map(v => {
       if (v.id === id) {
-        return { ...v, bensin: 100 };
+        const updated = { ...v, bensin: 100 };
+        syncVehicleToFirestore(updated);
+        return updated;
       }
       return v;
     }));
@@ -290,7 +344,9 @@ export default function App() {
       if (v.id === id) {
         const nextStatus: 'Siap' | 'Bertugas' | 'Servis' = 
           v.status === 'Siap' ? 'Bertugas' : v.status === 'Bertugas' ? 'Servis' : 'Siap';
-        return { ...v, status: nextStatus };
+        const updated = { ...v, status: nextStatus };
+        syncVehicleToFirestore(updated);
+        return updated;
       }
       return v;
     }));
@@ -300,12 +356,14 @@ export default function App() {
   // Add Vehicle handler
   const handleAddVehicle = (newV: GasVehicle) => {
     setVehicles(prev => [newV, ...prev]);
+    syncVehicleToFirestore(newV);
     showToast('ARMADA DITAMBAHKAN', `Armada ${newV.name} (${newV.plat}) berhasil didaftarkan.`, 'success');
   };
 
   // Add Personnel handler
   const handleAddPersonel = (newP: GasPersonel) => {
     setPersonnel(prev => [newP, ...prev]);
+    syncPersonelToFirestore(newP);
     showToast('PERSONIL DITAMBAHKAN', `Data personil ${newP.nama} berhasil didaftarkan.`, 'success');
   };
 
@@ -437,6 +495,7 @@ export default function App() {
             <LaporanView
               regionId={selectedRegionId}
               period={period}
+              userRole={userRole}
               onSelectRegion={setSelectedRegionId}
               onNavigateToForm={() => setCurrentTab('form_kabkota')}
             />
@@ -454,6 +513,8 @@ export default function App() {
                     setCurrentTab('laporan');
                   }
                 }}
+                onSelectRegion={setSelectedRegionId}
+                onSelectPeriod={setPeriod}
               />
             </div>
           )}
