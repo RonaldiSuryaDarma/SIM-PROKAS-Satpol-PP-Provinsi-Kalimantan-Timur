@@ -34,42 +34,42 @@ class StorageService {
 
   private init() {
     try {
-      // Clear legacy storage keys with dummy data
       localStorage.removeItem('simprokas_kaltim_reports_v2');
       localStorage.removeItem('simprokas_kaltim_reports');
 
       const stored = localStorage.getItem(STORAGE_KEY_REPORTS);
       if (stored) {
-        const parsed: DamkarReport[] = JSON.parse(stored);
-        // If data contains legacy dummy filler, discard it
-        const hasLegacyDummy = parsed.some(r => r.pengisi?.nama === 'Ahmad Faisal, S.AP.' || (r.bagianE && r.bagianE.totalKejadian > 0 && r.pengisi?.nama?.length > 0));
-        if (hasLegacyDummy) {
-          this.reportsCache.clear();
-          INITIAL_REPORTS.forEach(r => this.reportsCache.set(r.id, JSON.parse(JSON.stringify(r))));
-          this.persistImmediate();
-        } else {
-          parsed.forEach(r => this.reportsCache.set(r.id, r));
-          let hasNew = false;
-          INITIAL_REPORTS.forEach(r => {
-            if (!this.reportsCache.has(r.id)) {
-              this.reportsCache.set(r.id, JSON.parse(JSON.stringify(r)));
-              hasNew = true;
-            }
-          });
-          if (hasNew) {
-            this.persistImmediate();
+        try {
+          const parsed: DamkarReport[] = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(r => {
+              if (r && r.id) {
+                this.reportsCache.set(r.id, r);
+              }
+            });
           }
+        } catch (e) {
+          console.error('Failed to parse cached reports:', e);
         }
-      } else {
-        // Seed blank 10 regions
-        INITIAL_REPORTS.forEach(r => this.reportsCache.set(r.id, JSON.parse(JSON.stringify(r))));
-        this.persistImmediate();
       }
+
+      // Ensure all 10 regions have a baseline report in cache
+      INITIAL_REPORTS.forEach(r => {
+        if (!this.reportsCache.has(r.id)) {
+          this.reportsCache.set(r.id, JSON.parse(JSON.stringify(r)));
+        }
+      });
+      this.persistImmediate();
 
       const storedAudit = localStorage.getItem(STORAGE_KEY_AUDIT);
       if (storedAudit) {
-        this.auditLogs = JSON.parse(storedAudit);
-      } else {
+        try {
+          this.auditLogs = JSON.parse(storedAudit);
+        } catch {
+          this.auditLogs = [];
+        }
+      }
+      if (!this.auditLogs || this.auditLogs.length === 0) {
         this.auditLogs = [
           {
             id: 'init-1',
@@ -97,12 +97,13 @@ class StorageService {
       // Listen to real-time updates from Cloud Firestore
       onSnapshot(collection(db, 'reports'), (snapshot) => {
         if (!snapshot.empty) {
-          snapshot.docChanges().forEach(change => {
-            const data = change.doc.data() as DamkarReport;
+          snapshot.docs.forEach(docSnap => {
+            const data = docSnap.data() as DamkarReport;
             if (data && data.id) {
               this.reportsCache.set(data.id, data);
             }
           });
+          this.persistImmediate();
           this.setSyncState('synced', 0);
           this.notify();
         } else {
@@ -357,14 +358,19 @@ class StorageService {
 
     report.lastUpdated = new Date().toISOString();
     this.reportsCache.set(report.id, { ...report });
-    this.schedulePersist();
+    this.persistImmediate();
     this.notify();
 
     // Persist to Cloud Firestore in real time
     try {
-      setDoc(doc(db, 'reports', report.id), report, { merge: true }).catch(err => {
-        console.warn('Firestore async sync notice:', err);
-      });
+      const sanitized = JSON.parse(JSON.stringify(report));
+      setDoc(doc(db, 'reports', report.id), sanitized, { merge: true })
+        .then(() => {
+          this.setSyncState('synced', 0);
+        })
+        .catch(err => {
+          console.warn('Firestore async sync notice:', err);
+        });
     } catch (err) {
       console.warn('Firestore write notice:', err);
     }
@@ -406,16 +412,7 @@ class StorageService {
 
     // Persist status change to Cloud Firestore
     try {
-      const payload: any = {
-        status,
-        lastUpdated: report.lastUpdated
-      };
-      if (report.submittedAt) payload.submittedAt = report.submittedAt;
-      if (report.verifiedAt) payload.verifiedAt = report.verifiedAt;
-      if (report.verifiedBy) payload.verifiedBy = report.verifiedBy;
-      if (report.revisionNotes) payload.revisionNotes = report.revisionNotes;
-
-      setDoc(doc(db, 'reports', reportId), payload, { merge: true }).catch(err => {
+      setDoc(doc(db, 'reports', reportId), { ...report }, { merge: true }).catch(err => {
         console.warn('Firestore status async notice:', err);
       });
     } catch (err) {

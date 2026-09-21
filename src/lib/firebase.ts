@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 import config from '../../firebase-applet-config.json';
 
 const firebaseConfig = {
@@ -22,6 +22,11 @@ export const db = config.firestoreDatabaseId && config.firestoreDatabaseId !== '
 
 // Initialize Firebase Auth
 export const auth = getAuth(app);
+
+// Automatically sign in anonymously so Firebase Auth credentials exist for Cloud requests
+signInAnonymously(auth).catch(err => {
+  console.warn('Firebase anonymous auth notice:', err.message);
+});
 
 // Connection test helper per Firebase Skill requirements
 export async function validateFirestoreConnection(): Promise<boolean> {

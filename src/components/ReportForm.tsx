@@ -44,10 +44,16 @@ export const ReportForm: React.FC<ReportFormProps> = ({
   const [revisionModalOpen, setRevisionModalOpen] = useState(false);
   const [revisionNotesInput, setRevisionNotesInput] = useState('');
 
-  // Sync state if region or period changes
+  // Sync state if region or period changes or if updated remotely via Firestore
   useEffect(() => {
     const current = storageService.getReport(regionId, period, 2026);
     setReport({ ...current });
+
+    const unsub = storageService.subscribe(() => {
+      const refreshed = storageService.getReport(regionId, period, 2026);
+      setReport({ ...refreshed });
+    });
+    return () => unsub();
   }, [regionId, period]);
 
   const regionInfo = REGIONS_KALTIM.find(r => r.id === regionId) || REGIONS_KALTIM[0];
@@ -79,6 +85,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
   };
 
   const handleSubmitReport = () => {
+    storageService.saveReport(report, `${userRole} - ${regionInfo.name}`);
     storageService.updateReportStatus(
       report.id, 
       'submitted', 
