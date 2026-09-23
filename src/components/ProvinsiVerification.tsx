@@ -213,6 +213,32 @@ export const ProvinsiVerification: React.FC<ProvinsiVerificationProps> = ({
       {activeTab === 'monitoring' && (
         <div className="space-y-4">
           
+          {/* Banner Menunggu Verifikasi */}
+          {allReports.filter(r => r.report.status === 'submitted').length > 0 && (
+            <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-white border border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center shrink-0 shadow-xs">
+                  {allReports.filter(r => r.report.status === 'submitted').length}
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-extrabold text-slate-900">
+                    Ada {allReports.filter(r => r.report.status === 'submitted').length} Laporan Daerah Menunggu Verifikasi Sah Satpol PP Provinsi
+                  </h4>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Data realtime dari operator daerah telah masuk (termasuk Kab. Berau). Klik tombol "Sahkan" atau "Validasi" untuk mengesahkan data ke rekapitulasi provinsi.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('submitted')}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 transition shrink-0"
+              >
+                Lihat yang Diajukan
+              </button>
+            </div>
+          )}
+
           {/* Filters Bar */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div className="relative w-full sm:w-72">
@@ -317,6 +343,18 @@ export const ProvinsiVerification: React.FC<ProvinsiVerificationProps> = ({
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {report.status === 'submitted' && (
+                              <button
+                                type="button"
+                                onClick={() => handleVerify(report.id, 'verified')}
+                                title="Langsung Sahkan Laporan Ini ke Provinsi"
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-1 shadow-xs"
+                              >
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Sahkan</span>
+                              </button>
+                            )}
+
                             <button
                               type="button"
                               onClick={() => {

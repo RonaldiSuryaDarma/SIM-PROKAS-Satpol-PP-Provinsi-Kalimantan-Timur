@@ -132,6 +132,7 @@ export interface DamkarReport {
   bagianH: BagianHInspeksi;
   
   submittedAt?: string;
+  submittedBy?: string;
   verifiedAt?: string;
   verifiedBy?: string;
   revisionNotes?: string;

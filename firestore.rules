@@ -1,55 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128;
-    }
-
-    // Official Reports Collection (Lampiran II & III SE Sekda - 10 Kab/Kota)
-    match /reports/{reportId} {
-      allow read, write: if isValidId(reportId);
-    }
-
-    // Live Emergency Incidents Collection (112 Emergency Calls & Spatial Map)
-    match /incidents/{incidentId} {
-      allow read, write: if isValidId(incidentId);
-    }
-
-    // Vehicle Fleet Collection (Kendaraan Operasional & Armada Damkar)
-    match /vehicles/{vehicleId} {
-      allow read, write: if isValidId(vehicleId);
-    }
-
-    // Personnel Roster Collection (Personil & Petugas Damkar se-Kaltim)
-    match /personnel/{personnelId} {
-      allow read, write: if isValidId(personnelId);
-    }
-
-    // User Profiles and Session Sync
-    match /users/{userId} {
-      allow read, write: if isValidId(userId);
-    }
-
-    // System Settings and Custom Passwords
-    match /settings/{settingId} {
-      allow read, write: if isValidId(settingId);
-    }
-
-    // System Audit Logs
-    match /audit_logs/{logId} {
-      allow read, write: if isValidId(logId);
-    }
-
-    // Connection Health Check
-    match /_connection_test/{docId} {
-      allow read, write: if true;
-    }
-
-    // Default Deny All Other Collections
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }
+
+
 

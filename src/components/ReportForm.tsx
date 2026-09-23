@@ -47,6 +47,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
   const [submitModalOpen, setSubmitModalOpen] = useState(false);
   const [revisionModalOpen, setRevisionModalOpen] = useState(false);
   const [revisionNotesInput, setRevisionNotesInput] = useState('');
+  const [baselineRestoredMsg, setBaselineRestoredMsg] = useState<string | null>(null);
 
   // Sync state if region or period changes or if updated remotely via Firestore
   useEffect(() => {
@@ -61,6 +62,18 @@ export const ReportForm: React.FC<ReportFormProps> = ({
   }, [regionId, period]);
 
   const regionInfo = REGIONS_KALTIM.find(r => r.id === regionId) || REGIONS_KALTIM[0];
+
+  const handleLoadOfficialBaseline = () => {
+    const baseline = storageService.resetToOfficialBaseline(
+      regionId, 
+      period, 
+      2026, 
+      `${userRole} - ${regionInfo.name}`
+    );
+    setReport({ ...baseline });
+    setBaselineRestoredMsg(`✅ Data resmi ${regionInfo.name} berhasil dimuat lengkap sesuai SE Sekda! Anda tidak perlu input ulang.`);
+    setTimeout(() => setBaselineRestoredMsg(null), 6000);
+  };
 
   const handleFieldChange = (section: string, field: string, value: any, subfield?: string) => {
     setReport(prev => {
@@ -100,6 +113,8 @@ export const ReportForm: React.FC<ReportFormProps> = ({
     const refreshed = storageService.getReport(regionId, period, 2026);
     setReport({ ...refreshed });
     setSubmitModalOpen(false);
+    setBaselineRestoredMsg(`✅ Laporan ${regionInfo.name} BERHASIL DIKIRIM ke Satpol PP Provinsi Kaltim! Data realtime tercatat dan status langsung DIAJUKAN.`);
+    setTimeout(() => setBaselineRestoredMsg(null), 7000);
   };
 
   const handleVerifyReport = () => {
@@ -113,6 +128,8 @@ export const ReportForm: React.FC<ReportFormProps> = ({
     );
     const refreshed = storageService.getReport(regionId, period, 2026);
     setReport({ ...refreshed });
+    setBaselineRestoredMsg(`✅ Laporan ${regionInfo.name} BERHASIL DIVERIFIKASI SAH! Data realtime telah resmi masuk ke dalam rekapitulasi provinsi dan dashboard operasional.`);
+    setTimeout(() => setBaselineRestoredMsg(null), 7000);
   };
 
   const handleRequestRevision = () => {
@@ -249,6 +266,17 @@ export const ReportForm: React.FC<ReportFormProps> = ({
               Simpan Data
             </button>
 
+            {/* Quick Button to Restore / Load Official Baseline Data without typing from scratch */}
+            <button
+              type="button"
+              onClick={handleLoadOfficialBaseline}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition shadow-xs"
+              title="Muat data lengkap resmi wilayah ini sesuai Surat Edaran Sekda (tidak perlu input ulang)"
+            >
+              <Sparkles className="w-4 h-4 text-indigo-600" />
+              <span>Muat Data Resmi SE Sekda</span>
+            </button>
+
             {userRole === 'admin_provinsi' && onGoToPdf && (
               <button
                 type="button"
@@ -309,6 +337,16 @@ export const ReportForm: React.FC<ReportFormProps> = ({
             )}
           </div>
         </div>
+
+        {/* Realtime Feedback Banner */}
+        {baselineRestoredMsg && (
+          <div className="mt-4 p-4 rounded-xl bg-indigo-50 border-2 border-indigo-300 flex items-start gap-3 shadow-md animate-fade-in">
+            <Sparkles className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+            <div className="text-xs sm:text-sm text-indigo-950 font-bold">
+              {baselineRestoredMsg}
+            </div>
+          </div>
+        )}
 
         {/* Status Alert Banner */}
         {report.status === 'verified' && (

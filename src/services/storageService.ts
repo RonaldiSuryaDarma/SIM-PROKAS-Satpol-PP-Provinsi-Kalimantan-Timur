@@ -1,11 +1,11 @@
 import { DamkarReport, ReportPeriod, ReportStatus, SyncState } from '../types';
-import { INITIAL_REPORTS } from '../data/seedData';
+import { INITIAL_REPORTS, createBaselineReport } from '../data/seedData';
 import { REGIONS_KALTIM } from '../data/regions';
 import { db, validateFirestoreConnection } from '../lib/firebase';
 import { collection, doc, setDoc, getDocs, onSnapshot, writeBatch } from 'firebase/firestore';
 
-const STORAGE_KEY_REPORTS = 'simprokas_kaltim_reports_clean_v1';
-const STORAGE_KEY_AUDIT = 'simprokas_kaltim_audit_clean_v1';
+const STORAGE_KEY_REPORTS = 'simprokas_kaltim_reports_clean_v2';
+const STORAGE_KEY_AUDIT = 'simprokas_kaltim_audit_clean_v2';
 
 export interface AuditLogItem {
   id: string;
@@ -34,39 +34,53 @@ class StorageService {
 
   private init() {
     try {
-      localStorage.removeItem('simprokas_kaltim_reports_v2');
-      localStorage.removeItem('simprokas_kaltim_reports');
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('simprokas_kaltim_reports_clean_v1');
+        localStorage.removeItem('simprokas_kaltim_reports_v2');
+        localStorage.removeItem('simprokas_kaltim_reports');
 
-      const stored = localStorage.getItem(STORAGE_KEY_REPORTS);
-      if (stored) {
-        try {
-          const parsed: DamkarReport[] = JSON.parse(stored);
-          if (Array.isArray(parsed)) {
-            parsed.forEach(r => {
-              if (r && r.id) {
-                this.reportsCache.set(r.id, r);
-              }
-            });
+        const stored = localStorage.getItem(STORAGE_KEY_REPORTS);
+        if (stored) {
+          try {
+            const parsed: DamkarReport[] = JSON.parse(stored);
+            if (Array.isArray(parsed)) {
+              parsed.forEach(r => {
+                if (r && r.id) {
+                  this.reportsCache.set(r.id, r);
+                }
+              });
+            }
+          } catch (e) {
+            console.error('Failed to parse cached reports:', e);
           }
-        } catch (e) {
-          console.error('Failed to parse cached reports:', e);
         }
       }
 
       // Ensure all 10 regions have a baseline report in cache
       INITIAL_REPORTS.forEach(r => {
-        if (!this.reportsCache.has(r.id)) {
+        const existing = this.reportsCache.get(r.id);
+        if (!existing) {
           this.reportsCache.set(r.id, JSON.parse(JSON.stringify(r)));
+        } else {
+          // If the cached version has zero SDM & blank name while preset has real data, upgrade it
+          const isBlankZero = (existing.bagianB.totalPns === 0 && existing.bagianB.nonAsn === 0 && (!existing.pengisi.nama || existing.pengisi.nama.trim() === ''));
+          if (isBlankZero && (r.bagianB.totalPns > 0 || r.pengisi.nama)) {
+            const enriched = JSON.parse(JSON.stringify(r));
+            enriched.status = existing.status || r.status;
+            this.reportsCache.set(r.id, enriched);
+          }
         }
       });
       this.persistImmediate();
 
-      const storedAudit = localStorage.getItem(STORAGE_KEY_AUDIT);
-      if (storedAudit) {
-        try {
-          this.auditLogs = JSON.parse(storedAudit);
-        } catch {
-          this.auditLogs = [];
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const storedAudit = localStorage.getItem(STORAGE_KEY_AUDIT);
+        if (storedAudit) {
+          try {
+            this.auditLogs = JSON.parse(storedAudit);
+          } catch {
+            this.auditLogs = [];
+          }
         }
       }
       if (!this.auditLogs || this.auditLogs.length === 0) {
@@ -98,7 +112,7 @@ class StorageService {
           snapshot.docs.forEach(docSnap => {
             const remoteData = docSnap.data() as DamkarReport;
             if (remoteData && remoteData.id) {
-              // Always accept incoming remote data from Cloud Firestore as the authoritative real-time state
+              // Always accept incoming remote data from Cloud Firestore as authoritative real-time state
               this.reportsCache.set(remoteData.id, remoteData);
             }
           });
@@ -166,9 +180,56 @@ class StorageService {
     return { ...this.syncState };
   }
 
-  public forceSync(): void {
+  public async forceSync(): Promise<void> {
+    try {
+      this.setSyncState('saving', 1);
+      const snap = await getDocs(collection(db, 'reports'));
+      if (!snap.empty) {
+        snap.forEach(docSnap => {
+          const remoteData = docSnap.data() as DamkarReport;
+          if (remoteData && remoteData.id) {
+            this.reportsCache.set(remoteData.id, remoteData);
+          }
+        });
+      }
+      this.persistImmediate();
+      this.setSyncState('synced', 0);
+      this.notify();
+    } catch (e) {
+      console.warn('Manual sync warning:', e);
+      this.persistImmediate();
+      this.notify();
+    }
+  }
+
+  public resetToOfficialBaseline(regionId: string, period: ReportPeriod = 'SEMESTER_1', year = 2026, userContext?: string): DamkarReport {
+    const id = `${regionId}-${year}-${period}`;
+    const baseline = createBaselineReport(regionId, period, year);
+    baseline.lastUpdated = new Date().toISOString();
+
+    this.reportsCache.set(id, JSON.parse(JSON.stringify(baseline)));
     this.persistImmediate();
     this.notify();
+
+    // Persist to Firestore
+    try {
+      const sanitized = JSON.parse(JSON.stringify(baseline));
+      setDoc(doc(db, 'reports', id), sanitized, { merge: true }).catch(err => {
+        console.warn('Firestore reset baseline notice:', err);
+      });
+    } catch (err) {
+      console.warn('Firestore baseline write notice:', err);
+    }
+
+    const reg = REGIONS_KALTIM.find(r => r.id === regionId);
+    this.addAuditLog(
+      userContext || 'Operator / Admin',
+      'Pemulihan Data Resmi',
+      `Memulihkan data resmi SE Sekda Prov Kaltim untuk ${reg?.name || regionId} (${period} ${year})`,
+      regionId
+    );
+
+    return baseline;
   }
 
   private notify() {
@@ -187,7 +248,9 @@ class StorageService {
   private persistImmediate() {
     try {
       const list = Array.from(this.reportsCache.values());
-      localStorage.setItem(STORAGE_KEY_REPORTS, JSON.stringify(list));
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(STORAGE_KEY_REPORTS, JSON.stringify(list));
+      }
       this.setSyncState('synced', 0);
     } catch (err) {
       console.error('Persist error:', err);
@@ -197,7 +260,9 @@ class StorageService {
 
   private persistAuditImmediate() {
     try {
-      localStorage.setItem(STORAGE_KEY_AUDIT, JSON.stringify(this.auditLogs.slice(0, 100)));
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(STORAGE_KEY_AUDIT, JSON.stringify(this.auditLogs.slice(0, 100)));
+      }
     } catch (err) {
       console.error('Audit persist error:', err);
     }
@@ -247,6 +312,15 @@ class StorageService {
     const id = `${regionId}-${year}-${period}`;
     const existing = this.reportsCache.get(id);
     if (existing) {
+      const defaultSeed = INITIAL_REPORTS.find(r => r.id === id);
+      const isBlankZero = (existing.bagianB.totalPns === 0 && existing.bagianB.nonAsn === 0 && (!existing.pengisi.nama || existing.pengisi.nama.trim() === ''));
+      if (isBlankZero && defaultSeed && (defaultSeed.bagianB.totalPns > 0 || defaultSeed.pengisi.nama)) {
+        const enriched = JSON.parse(JSON.stringify(defaultSeed));
+        enriched.status = existing.status || defaultSeed.status;
+        this.reportsCache.set(id, enriched);
+        this.schedulePersist();
+        return enriched;
+      }
       return existing;
     }
 
