@@ -1324,11 +1324,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <td className="py-3 px-3">
                       <div className="font-bold text-white text-xs flex items-center gap-1.5">
                         <span>{item.region.name}</span>
-                        {item.region.id === 'berau' && (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                            Berau
-                          </span>
-                        )}
                       </div>
                       <div className="text-[11px] text-slate-400 truncate max-w-xs">
                         {item.region.instansiName}

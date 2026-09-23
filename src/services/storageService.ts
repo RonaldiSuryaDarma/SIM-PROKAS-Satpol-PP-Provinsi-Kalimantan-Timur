@@ -1,11 +1,26 @@
 import { DamkarReport, ReportPeriod, ReportStatus, SyncState } from '../types';
-import { INITIAL_REPORTS, createBaselineReport } from '../data/seedData';
+import { INITIAL_REPORTS, createCleanReport } from '../data/seedData';
 import { REGIONS_KALTIM } from '../data/regions';
 import { db, validateFirestoreConnection } from '../lib/firebase';
-import { collection, doc, setDoc, getDocs, onSnapshot, writeBatch } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, onSnapshot, writeBatch, deleteDoc } from 'firebase/firestore';
 
-const STORAGE_KEY_REPORTS = 'simprokas_kaltim_reports_clean_v2';
-const STORAGE_KEY_AUDIT = 'simprokas_kaltim_audit_clean_v2';
+const STORAGE_KEY_REPORTS = 'simprokas_kaltim_reports_v6_clean';
+const STORAGE_KEY_AUDIT = 'simprokas_kaltim_audit_v6_clean';
+
+const DUMMY_PENGISI_NAMES = new Set([
+  'Ahmad Fauzi, S.Kom.',
+  'Rian Syahputra, S.Sos.',
+  'Bambang Irawan, S.E.',
+  'Dedi Kurniawan, S.T.',
+  'Hendra Saputra',
+  'Zainuddin, S.AP.',
+  'Stefanus Huvat',
+  'Arif Budiman',
+  'Wahyu Ramadhan',
+  'Kornelius Yoga',
+  'Budi Santoso, S.AP.',
+  'Ahmad Faisal, S.AP.'
+]);
 
 export interface AuditLogItem {
   id: string;
@@ -35,9 +50,14 @@ class StorageService {
   private init() {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('simprokas_kaltim_reports_v3_clean');
+        localStorage.removeItem('simprokas_kaltim_reports_clean_v2');
         localStorage.removeItem('simprokas_kaltim_reports_clean_v1');
         localStorage.removeItem('simprokas_kaltim_reports_v2');
         localStorage.removeItem('simprokas_kaltim_reports');
+        localStorage.removeItem('simprokas_kaltim_audit_v3_clean');
+        localStorage.removeItem('simprokas_kaltim_audit_clean_v2');
+        localStorage.removeItem('simprokas_kaltim_audit_clean_v1');
 
         const stored = localStorage.getItem(STORAGE_KEY_REPORTS);
         if (stored) {
@@ -45,7 +65,11 @@ class StorageService {
             const parsed: DamkarReport[] = JSON.parse(stored);
             if (Array.isArray(parsed)) {
               parsed.forEach(r => {
-                if (r && r.id) {
+                if (r && r.id && !r.id.startsWith('kaltim-')) {
+                  // If cached report contains legacy dummy names, reject it!
+                  if (r.pengisi?.nama && DUMMY_PENGISI_NAMES.has(r.pengisi.nama.trim())) {
+                    return;
+                  }
                   this.reportsCache.set(r.id, r);
                 }
               });
@@ -56,19 +80,10 @@ class StorageService {
         }
       }
 
-      // Ensure all 10 regions have a baseline report in cache
+      // Ensure all 10 regions have a clean empty template in cache
       INITIAL_REPORTS.forEach(r => {
-        const existing = this.reportsCache.get(r.id);
-        if (!existing) {
+        if (!this.reportsCache.has(r.id)) {
           this.reportsCache.set(r.id, JSON.parse(JSON.stringify(r)));
-        } else {
-          // If the cached version has zero SDM & blank name while preset has real data, upgrade it
-          const isBlankZero = (existing.bagianB.totalPns === 0 && existing.bagianB.nonAsn === 0 && (!existing.pengisi.nama || existing.pengisi.nama.trim() === ''));
-          if (isBlankZero && (r.bagianB.totalPns > 0 || r.pengisi.nama)) {
-            const enriched = JSON.parse(JSON.stringify(r));
-            enriched.status = existing.status || r.status;
-            this.reportsCache.set(r.id, enriched);
-          }
         }
       });
       this.persistImmediate();
@@ -84,16 +99,7 @@ class StorageService {
         }
       }
       if (!this.auditLogs || this.auditLogs.length === 0) {
-        this.auditLogs = [
-          {
-            id: 'init-1',
-            timestamp: new Date().toISOString(),
-            user: 'Sistem SIMPROKAS',
-            action: 'Inisialisasi Database',
-            details: 'Database 10 Kabupaten/Kota se-Kalimantan Timur berhasil disiapkan sesuai Surat Edaran No. 300.1/3326/SATPOL.PP-IV.'
-          }
-        ];
-        this.persistAuditImmediate();
+        this.auditLogs = [];
       }
 
       // Start Cloud Firestore Synchronization
@@ -111,17 +117,28 @@ class StorageService {
         if (!snapshot.empty) {
           snapshot.docs.forEach(docSnap => {
             const remoteData = docSnap.data() as DamkarReport;
-            if (remoteData && remoteData.id) {
-              // Always accept incoming remote data from Cloud Firestore as authoritative real-time state
-              this.reportsCache.set(remoteData.id, remoteData);
+            if (!remoteData || !remoteData.id || remoteData.id.startsWith('kaltim-') || remoteData.id.startsWith('test_')) {
+              deleteDoc(doc(db, 'reports', docSnap.id)).catch(() => {});
+              return;
             }
+
+            // If incoming remote report contains dummy test names, auto-overwrite with clean draft!
+            if (remoteData.pengisi?.nama && DUMMY_PENGISI_NAMES.has(remoteData.pengisi.nama.trim())) {
+              const clean = createCleanReport(remoteData.regionId, remoteData.period, remoteData.year);
+              this.reportsCache.set(remoteData.id, clean);
+              setDoc(doc(db, 'reports', remoteData.id), clean).catch(() => {});
+              return;
+            }
+
+            // Accept authoritative remote data
+            this.reportsCache.set(remoteData.id, remoteData);
           });
 
           this.persistImmediate();
           this.setSyncState('synced', 0);
           this.notify();
         } else {
-          // If empty in cloud, seed baseline reports from current cache
+          // If empty in cloud, seed clean empty drafts from current cache
           this.seedFirestoreBatch();
         }
       }, (err) => {
@@ -202,34 +219,38 @@ class StorageService {
     }
   }
 
-  public resetToOfficialBaseline(regionId: string, period: ReportPeriod = 'SEMESTER_1', year = 2026, userContext?: string): DamkarReport {
+  public resetToCleanDraft(regionId: string, period: ReportPeriod = 'SEMESTER_1', year = 2026, userContext?: string): DamkarReport {
     const id = `${regionId}-${year}-${period}`;
-    const baseline = createBaselineReport(regionId, period, year);
-    baseline.lastUpdated = new Date().toISOString();
+    const clean = createCleanReport(regionId, period, year);
+    clean.lastUpdated = new Date().toISOString();
 
-    this.reportsCache.set(id, JSON.parse(JSON.stringify(baseline)));
+    this.reportsCache.set(id, JSON.parse(JSON.stringify(clean)));
     this.persistImmediate();
     this.notify();
 
     // Persist to Firestore
     try {
-      const sanitized = JSON.parse(JSON.stringify(baseline));
+      const sanitized = JSON.parse(JSON.stringify(clean));
       setDoc(doc(db, 'reports', id), sanitized, { merge: true }).catch(err => {
-        console.warn('Firestore reset baseline notice:', err);
+        console.warn('Firestore reset clean notice:', err);
       });
     } catch (err) {
-      console.warn('Firestore baseline write notice:', err);
+      console.warn('Firestore clean write notice:', err);
     }
 
     const reg = REGIONS_KALTIM.find(r => r.id === regionId);
     this.addAuditLog(
       userContext || 'Operator / Admin',
-      'Pemulihan Data Resmi',
-      `Memulihkan data resmi SE Sekda Prov Kaltim untuk ${reg?.name || regionId} (${period} ${year})`,
+      'Format Bersih Form',
+      `Menyiapkan form bersih untuk ${reg?.name || regionId} (${period} ${year})`,
       regionId
     );
 
-    return baseline;
+    return clean;
+  }
+
+  public resetToOfficialBaseline(regionId: string, period: ReportPeriod = 'SEMESTER_1', year = 2026, userContext?: string): DamkarReport {
+    return this.resetToCleanDraft(regionId, period, year, userContext);
   }
 
   private notify() {
@@ -312,19 +333,10 @@ class StorageService {
     const id = `${regionId}-${year}-${period}`;
     const existing = this.reportsCache.get(id);
     if (existing) {
-      const defaultSeed = INITIAL_REPORTS.find(r => r.id === id);
-      const isBlankZero = (existing.bagianB.totalPns === 0 && existing.bagianB.nonAsn === 0 && (!existing.pengisi.nama || existing.pengisi.nama.trim() === ''));
-      if (isBlankZero && defaultSeed && (defaultSeed.bagianB.totalPns > 0 || defaultSeed.pengisi.nama)) {
-        const enriched = JSON.parse(JSON.stringify(defaultSeed));
-        enriched.status = existing.status || defaultSeed.status;
-        this.reportsCache.set(id, enriched);
-        this.schedulePersist();
-        return enriched;
-      }
       return existing;
     }
 
-    // Check if initial seed has this report
+    // Check if initial template has this report
     const defaultSeed = INITIAL_REPORTS.find(r => r.id === id);
     if (defaultSeed) {
       const cloned = JSON.parse(JSON.stringify(defaultSeed));
@@ -333,103 +345,10 @@ class StorageService {
       return cloned;
     }
 
-    // Build default blank report structure if not existing
-    const region = REGIONS_KALTIM.find(r => r.id === regionId) || REGIONS_KALTIM[0];
-    const newReport: DamkarReport = {
-      id,
-      regionId,
-      year,
-      period,
-      status: 'draft',
-      pengisi: {
-        nama: '',
-        nip: '',
-        jabatan: '',
-        noHp: ''
-      },
-      pejabat: {
-        nama: region.kadisDefault.nama,
-        nip: region.kadisDefault.nip,
-        jabatan: region.kadisDefault.jabatan
-      },
-      bagianA: {
-        namaInstansi: region.instansiName,
-        bentukKelembagaan: region.instansiType,
-        tipeKelembagaan: region.tipeDefault,
-        jumlahMako: 1,
-        jumlahPosSektor: 2,
-        jumlahPos: 3
-      },
-      bagianB: {
-        pnsStruktural: 0,
-        pnsFungsional: 0,
-        pnsPelaksana: 0,
-        totalPns: 0,
-        pppk: 0,
-        pppkParuhWaktu: 0,
-        totalPppk: 0,
-        nonAsn: 0,
-        sertifikasi: {
-          instruktur: 0,
-          inspektur: 0,
-          mfr: 0,
-          rescue: 0
-        }
-      },
-      bagianC: {
-        mobilDamkar: 0,
-        mobilTangki: 0,
-        mobilTangga: 0,
-        mobilRescue: 0,
-        kendaraanLainnya: 0
-      },
-      bagianD: {
-        jumlahRelawan: 0,
-        jumlahDesaKelurahan: 0
-      },
-      bagianE: {
-        response15Menit: 0,
-        sebabGasKompor: 0,
-        sebabListrik: 0,
-        sebabBahanBakar: 0,
-        sebabKelalaian: 0,
-        sebabLainnya: 0,
-        totalKejadian: 0
-      },
-      bagianF: {
-        kecelakaanTransportasi: 0,
-        waterRescue: 0,
-        animalRescue: 0,
-        ketinggian: 0,
-        bangunanRuntuh: 0,
-        pohonTumbang: 0,
-        percobaanBunuhDiri: 0,
-        pelepasanCincin: 0,
-        operasiLainnya: 0,
-        totalOperasi: 0
-      },
-      bagianG: {
-        jiwaSelamat: 0,
-        korbanMeninggal: 0,
-        korbanLukaBakar: 0,
-        korbanLukaFisikLainnya: 0,
-        taksiranAsetSelamat: 0,
-        taksiranKerugian: 0
-      },
-      bagianH: {
-        bangunanRendah: 0,
-        bangunanRendahDiinspeksi: 0,
-        bangunanMenengah: 0,
-        bangunanMenengahDiinspeksi: 0,
-        bangunanTinggi: 0,
-        bangunanTinggiDiinspeksi: 0
-      },
-      lastUpdated: '1970-01-01T00:00:00.000Z'
-    };
-
-    this.reportsCache.set(id, newReport);
-    this.schedulePersist();
-    return newReport;
+    const cleanReport = createCleanReport(regionId, period, year);
+    this.reportsCache.set(id, cleanReport);
+    this.persistImmediate();
+    return cleanReport;
   }
 
   public saveReport(report: DamkarReport, userContext?: string): void {
@@ -465,7 +384,7 @@ class StorageService {
     // Persist to Cloud Firestore in real time
     try {
       const sanitized = JSON.parse(JSON.stringify(report));
-      setDoc(doc(db, 'reports', report.id), sanitized, { merge: true })
+      setDoc(doc(db, 'reports', report.id), sanitized)
         .then(() => {
           this.setSyncState('synced', 0);
         })
@@ -514,7 +433,7 @@ class StorageService {
     // Persist status change to Cloud Firestore in real time
     try {
       const sanitized = JSON.parse(JSON.stringify(report));
-      setDoc(doc(db, 'reports', reportId), sanitized, { merge: true })
+      setDoc(doc(db, 'reports', reportId), sanitized)
         .then(() => {
           this.setSyncState('synced', 0);
         })

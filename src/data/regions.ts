@@ -9,9 +9,9 @@ export const REGIONS_KALTIM: RegionInfo[] = [
     instansiType: 'Dinas Pemadam Kebakaran dan Penyelamatan',
     tipeDefault: 'A',
     kadisDefault: {
-      nama: 'H. Hendra AH, S.Sos., M.Si.',
-      nip: '19690412 199303 1 008',
-      jabatan: 'Kepala Dinas Pemadam Kebakaran dan Penyelamatan'
+      nama: '',
+      nip: '',
+      jabatan: ''
     },
     ibukota: 'Samarinda',
     badgeColor: 'emerald'
@@ -24,9 +24,9 @@ export const REGIONS_KALTIM: RegionInfo[] = [
     instansiType: 'Badan Penanggulangan Bencana Daerah',
     tipeDefault: 'A',
     kadisDefault: {
-      nama: 'Usman Ali, S.E., M.Si.',
-      nip: '19710815 199702 1 004',
-      jabatan: 'Kepala Pelaksana BPBD Kota Balikpapan'
+      nama: '',
+      nip: '',
+      jabatan: ''
     },
     ibukota: 'Balikpapan',
     badgeColor: 'sky'
@@ -39,9 +39,9 @@ export const REGIONS_KALTIM: RegionInfo[] = [
     instansiType: 'Dinas Pemadam Kebakaran dan Penyelamatan',
     tipeDefault: 'B',
     kadisDefault: {
-      nama: 'Drs. Amiluddin, M.Si.',
-      nip: '19680320 199201 1 002',
-      jabatan: 'Kepala Dinas Pemadam Kebakaran dan Penyelamatan'
+      nama: '',
+      nip: '',
+      jabatan: ''
     },
     ibukota: 'Bontang',
     badgeColor: 'blue'
@@ -54,9 +54,9 @@ export const REGIONS_KALTIM: RegionInfo[] = [
     instansiType: 'Dinas Pemadam Kebakaran dan Penyelamatan',
     tipeDefault: 'A',
     kadisDefault: {
-      nama: 'Fida Hurasani, S.Sos., M.Si.',
-      nip: '19730510 199503 1 003',
-      jabatan: 'Kepala Dinas Pemadam Kebakaran dan Penyelamatan'
+      nama: '',
+      nip: '',
+      jabatan: ''
     },
     ibukota: 'Tenggarong',
     badgeColor: 'amber'
@@ -69,9 +69,9 @@ export const REGIONS_KALTIM: RegionInfo[] = [
     instansiType: 'Dinas Pemadam Kebakaran dan Penyelamatan',
     tipeDefault: 'B',
     kadisDefault: {
-      nama: 'Failu, S.Sos., M.AP.',
-      nip: '19701104 199602 1 001',
-      jabatan: 'Kepala Dinas Pemadam Kebakaran dan Penyelamatan'
+      nama: '',
+      nip: '',
+      jabatan: ''
     },
     ibukota: 'Sangatta',
     badgeColor: 'violet'
@@ -84,9 +84,9 @@ export const REGIONS_KALTIM: RegionInfo[] = [
     instansiType: 'Dinas Pemadam Kebakaran dan Penyelamatan',
     tipeDefault: 'B',
     kadisDefault: {
-      nama: 'H. Fernando, S.STP., M.Si.',
-      nip: '19780621 199810 1 001',
-      jabatan: 'Kepala Dinas Pemadam Kebakaran dan Penyelamatan'
+      nama: '',
+      nip: '',
+      jabatan: ''
     },
     ibukota: 'Penajam',
     badgeColor: 'teal'
@@ -99,9 +99,9 @@ export const REGIONS_KALTIM: RegionInfo[] = [
     instansiType: 'Dinas Pemadam Kebakaran dan Penyelamatan',
     tipeDefault: 'B',
     kadisDefault: {
-      nama: 'Drs. M. Noviar Ridwan, M.M.',
-      nip: '19671205 199303 1 005',
-      jabatan: 'Kepala Dinas Pemadam Kebakaran dan Penyelamatan'
+      nama: '',
+      nip: '',
+      jabatan: ''
     },
     ibukota: 'Tanjung Redeb',
     badgeColor: 'indigo'
@@ -114,9 +114,9 @@ export const REGIONS_KALTIM: RegionInfo[] = [
     instansiType: 'Dinas Pemadam Kebakaran',
     tipeDefault: 'B',
     kadisDefault: {
-      nama: 'M. Lukman Dharma, S.STP., M.Si.',
-      nip: '19760914 199612 1 001',
-      jabatan: 'Kepala Dinas Pemadam Kebakaran'
+      nama: '',
+      nip: '',
+      jabatan: ''
     },
     ibukota: 'Tanah Grogot',
     badgeColor: 'rose'
@@ -129,9 +129,9 @@ export const REGIONS_KALTIM: RegionInfo[] = [
     instansiType: 'Satuan Polisi Pamong Praja',
     tipeDefault: 'C',
     kadisDefault: {
-      nama: 'Franky Arden, S.STP., M.Si.',
-      nip: '19800218 200012 1 002',
-      jabatan: 'Kepala Satuan Polisi Pamong Praja'
+      nama: '',
+      nip: '',
+      jabatan: ''
     },
     ibukota: 'Sendawar',
     badgeColor: 'orange'
@@ -144,9 +144,9 @@ export const REGIONS_KALTIM: RegionInfo[] = [
     instansiType: 'Satuan Polisi Pamong Praja',
     tipeDefault: 'C',
     kadisDefault: {
-      nama: 'Kornelius Ding, S.E., M.Si.',
-      nip: '19741009 200212 1 003',
-      jabatan: 'Kepala Satuan Polisi Pamong Praja'
+      nama: '',
+      nip: '',
+      jabatan: ''
     },
     ibukota: 'Ujoh Bilang',
     badgeColor: 'cyan'

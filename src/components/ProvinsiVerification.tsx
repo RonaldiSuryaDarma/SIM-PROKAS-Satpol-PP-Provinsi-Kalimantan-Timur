@@ -225,7 +225,7 @@ export const ProvinsiVerification: React.FC<ProvinsiVerificationProps> = ({
                     Ada {allReports.filter(r => r.report.status === 'submitted').length} Laporan Daerah Menunggu Verifikasi Sah Satpol PP Provinsi
                   </h4>
                   <p className="text-[11px] text-slate-600 mt-0.5">
-                    Data realtime dari operator daerah telah masuk (termasuk Kab. Berau). Klik tombol "Sahkan" atau "Validasi" untuk mengesahkan data ke rekapitulasi provinsi.
+                    Data realtime dari operator kabupaten/kota telah masuk ke cloud. Klik tombol "Sahkan" atau "Validasi" untuk mengesahkan data ke rekapitulasi provinsi.
                   </p>
                 </div>
               </div>

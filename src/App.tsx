@@ -456,6 +456,8 @@ export default function App() {
             <PersonelView
               personnel={personnel}
               onAddPersonel={handleAddPersonel}
+              userRole={userRole}
+              userSession={userSession}
             />
           )}
 

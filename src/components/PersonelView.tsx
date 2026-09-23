@@ -16,22 +16,35 @@ import {
 import { GasPersonel } from '../data/gasAppData';
 import { storageService } from '../services/storageService';
 import { REGIONS_KALTIM } from '../data/regions';
-import { DamkarReport } from '../types';
+import { DamkarReport, UserRole, UserSession } from '../types';
 
 interface PersonelViewProps {
   personnel: GasPersonel[];
   onAddPersonel: (p: GasPersonel) => void;
+  userRole?: UserRole;
+  userSession?: UserSession | null;
 }
 
 export const PersonelView: React.FC<PersonelViewProps> = ({
   personnel,
-  onAddPersonel
+  onAddPersonel,
+  userRole = 'admin_provinsi',
+  userSession
 }) => {
-  const [activeTab, setActiveTab] = useState<'rekap_daerah' | 'daftar_petugas'>('rekap_daerah');
+  const isProvinsi = userRole === 'admin_provinsi';
+  const [activeTab, setActiveTab] = useState<'rekap_daerah' | 'daftar_petugas'>(
+    isProvinsi ? 'rekap_daerah' : 'daftar_petugas'
+  );
   const [selectedRegionFilter, setSelectedRegionFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isProvinsi && activeTab === 'rekap_daerah') {
+      setActiveTab('daftar_petugas');
+    }
+  }, [isProvinsi, activeTab]);
 
   // Live reports from 10 Kab/Kota
   const [reports, setReports] = useState<DamkarReport[]>(() => 
@@ -56,6 +69,20 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
     const s = r.bagianB.sertifikasi;
     return acc + (Number(s.instruktur) || 0) + (Number(s.inspektur) || 0) + (Number(s.mfr) || 0) + (Number(s.rescue) || 0);
   }, 0);
+
+  const operatorRegionId = userSession?.regionId || 'samarinda';
+  const operatorRegionInfo = REGIONS_KALTIM.find(r => r.id === operatorRegionId) || REGIONS_KALTIM[0];
+  const operatorReport = reports.find(r => r.regionId === operatorRegionId) || storageService.getReport(operatorRegionId, 'SEMESTER_1', 2026);
+
+  const opPns = Number(operatorReport.bagianB.totalPns) || 0;
+  const opPppk = Number(operatorReport.bagianB.totalPppk) || 0;
+  const opNonAsn = Number(operatorReport.bagianB.nonAsn) || 0;
+  const opAparatur = opPns + opPppk + opNonAsn;
+  const opRelawan = Number(operatorReport.bagianD.jumlahRelawan) || 0;
+  const opSertifikasi = (() => {
+    const s = operatorReport.bagianB.sertifikasi;
+    return (Number(s.instruktur) || 0) + (Number(s.inspektur) || 0) + (Number(s.mfr) || 0) + (Number(s.rescue) || 0);
+  })();
 
   const displayedReports = selectedRegionFilter === 'all' 
     ? reports 
@@ -138,36 +165,43 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
         </div>
 
         {/* View Switcher Tabs */}
-        <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl">
-          <button
-            type="button"
-            onClick={() => setActiveTab('rekap_daerah')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
-              activeTab === 'rekap_daerah'
-                ? 'bg-rose-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Building2 className="w-4 h-4" />
-            <span>Rekap 10 Kab/Kota (SE Sekda)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('daftar_petugas')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
-              activeTab === 'daftar_petugas'
-                ? 'bg-rose-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Roster Petugas Lapangan</span>
-          </button>
-        </div>
+        {isProvinsi ? (
+          <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setActiveTab('rekap_daerah')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
+                activeTab === 'rekap_daerah'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Matriks SDM 10 Kab/Kota (Admin Provinsi)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('daftar_petugas')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
+                activeTab === 'daftar_petugas'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Roster Petugas Lapangan</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300">
+            <Users className="w-4 h-4 text-rose-500" />
+            <span className="font-bold">Roster Petugas Lapangan Daerah</span>
+          </div>
+        )}
       </div>
 
-      {/* TAB 1: REKAPITULASI SDM DARI 10 KAB/KOTA (DATA OPERATOR) */}
-      {activeTab === 'rekap_daerah' && (
+      {/* TAB 1: REKAPITULASI SDM DARI 10 KAB/KOTA (KHUSUS SUPER ADMIN PROVINSI) */}
+      {isProvinsi && activeTab === 'rekap_daerah' && (
         <div className="space-y-6">
           {/* Summary Metric Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
