@@ -98,29 +98,8 @@ class StorageService {
           snapshot.docs.forEach(docSnap => {
             const remoteData = docSnap.data() as DamkarReport;
             if (remoteData && remoteData.id) {
-              const localData = this.reportsCache.get(remoteData.id);
-              if (!localData) {
-                this.reportsCache.set(remoteData.id, remoteData);
-              } else {
-                const remoteTime = remoteData.lastUpdated ? new Date(remoteData.lastUpdated).getTime() : 0;
-                const localTime = localData.lastUpdated ? new Date(localData.lastUpdated).getTime() : 0;
-                if (remoteTime >= localTime) {
-                  this.reportsCache.set(remoteData.id, remoteData);
-                } else if (localTime > remoteTime) {
-                  // Local is newer! Push to Cloud Firestore so the cloud has latest edits
-                  const sanitized = JSON.parse(JSON.stringify(localData));
-                  setDoc(doc(db, 'reports', remoteData.id), sanitized, { merge: true }).catch(console.warn);
-                }
-              }
-            }
-          });
-
-          // Check if there are local reports not yet in Firestore
-          this.reportsCache.forEach((report, id) => {
-            const foundInSnapshot = snapshot.docs.some(d => d.id === id);
-            if (!foundInSnapshot) {
-              const sanitized = JSON.parse(JSON.stringify(report));
-              setDoc(doc(db, 'reports', id), sanitized, { merge: true }).catch(console.warn);
+              // Always accept incoming remote data from Cloud Firestore as the authoritative real-time state
+              this.reportsCache.set(remoteData.id, remoteData);
             }
           });
 
@@ -371,7 +350,7 @@ class StorageService {
         bangunanTinggi: 0,
         bangunanTinggiDiinspeksi: 0
       },
-      lastUpdated: new Date().toISOString()
+      lastUpdated: '1970-01-01T00:00:00.000Z'
     };
 
     this.reportsCache.set(id, newReport);
@@ -455,14 +434,19 @@ class StorageService {
     }
 
     this.reportsCache.set(reportId, { ...report });
-    this.schedulePersist();
+    this.persistImmediate();
     this.notify();
 
-    // Persist status change to Cloud Firestore
+    // Persist status change to Cloud Firestore in real time
     try {
-      setDoc(doc(db, 'reports', reportId), { ...report }, { merge: true }).catch(err => {
-        console.warn('Firestore status async notice:', err);
-      });
+      const sanitized = JSON.parse(JSON.stringify(report));
+      setDoc(doc(db, 'reports', reportId), sanitized, { merge: true })
+        .then(() => {
+          this.setSyncState('synced', 0);
+        })
+        .catch(err => {
+          console.warn('Firestore status async notice:', err);
+        });
     } catch (err) {
       console.warn('Firestore status write notice:', err);
     }

@@ -19,7 +19,9 @@ import {
   Calendar,
   Layers,
   Award,
-  X
+  X,
+  RefreshCw,
+  FileCheck
 } from 'lucide-react';
 import { GasIncident } from '../data/gasAppData';
 import { OperationsMap } from './OperationsMap';
@@ -62,7 +64,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [activePeriod, setActivePeriod] = useState<ReportPeriod>(period);
   const [activeRegionId, setActiveRegionId] = useState<string>(isOperator ? operatorRegion : selectedRegionId);
   const [activeModal, setActiveModal] = useState<'personil' | 'kejadian' | 'armada' | 'posko' | 'jiwa' | 'kerugian' | null>(null);
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
   // If operator, strictly lock scope to kabkota and their region
   useEffect(() => {
@@ -88,6 +92,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     });
     return unsub;
   }, []);
+
+  const handleManualSync = () => {
+    setIsRefreshing(true);
+    storageService.forceSync();
+    setTimeout(() => {
+      setIsRefreshing(false);
+      setSyncNotice('Data telah disinkronkan secara realtime dengan Cloud Firestore.');
+      setTimeout(() => setSyncNotice(null), 4000);
+    }, 600);
+  };
 
   const handlePeriodChange = (p: ReportPeriod) => {
     setActivePeriod(p);
@@ -215,7 +229,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         rasioAset
       };
     }
-  }, [dataScope, activePeriod, activeRegionId]);
+  }, [dataScope, activePeriod, activeRegionId, tick]);
+
+  const regionReportsList = useMemo(() => {
+    return REGIONS_KALTIM.map(reg => {
+      const rep = storageService.getReport(reg.id, activePeriod, 2026);
+      const totalSdm = (rep.bagianB.totalPns || 0) + (rep.bagianB.totalPppk || 0) + (rep.bagianB.nonAsn || 0);
+      const totalArmada = (rep.bagianC.mobilDamkar || 0) + (rep.bagianC.mobilTangki || 0) + (rep.bagianC.mobilRescue || 0);
+      const spmRate = rep.bagianE.totalKejadian > 0 
+        ? Math.round((rep.bagianE.response15Menit / rep.bagianE.totalKejadian) * 100) 
+        : 100;
+      return {
+        region: reg,
+        report: rep,
+        totalSdm,
+        totalArmada,
+        spmRate
+      };
+    });
+  }, [activePeriod, tick]);
+
+  const verifiedCount = regionReportsList.filter(r => r.report.status === 'verified').length;
+  const submittedCount = regionReportsList.filter(r => r.report.status === 'submitted').length;
+  const revisionCount = regionReportsList.filter(r => r.report.status === 'revision_needed').length;
+  const draftCount = regionReportsList.filter(r => r.report.status === 'draft').length;
+
+  const currentRegionReport = storageService.getReport(activeRegionId, activePeriod, 2026);
+  const currentRegionInfo = REGIONS_KALTIM.find(r => r.id === activeRegionId) || REGIONS_KALTIM[0];
 
   const formatRupiah = (val: number): string => {
     return 'Rp ' + Number(val || 0).toLocaleString('id-ID');
@@ -403,6 +443,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Quick Realtime Cloud Refresh */}
+          <button
+            type="button"
+            onClick={handleManualSync}
+            disabled={isRefreshing}
+            className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:border-slate-700 transition shrink-0"
+            title="Sinkronkan data secara realtime dari Cloud Firestore"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-rose-500' : 'text-slate-400'}`} />
+            <span>{isRefreshing ? 'Menyinkronkan...' : 'Sinkron Realtime Cloud'}</span>
+          </button>
         </div>
 
         <div className="flex items-center gap-2 text-[11px] text-slate-400 bg-slate-950/70 border border-slate-800 px-3 py-1.5 rounded-xl shrink-0">
@@ -410,6 +462,164 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <span>Format Resmi: <strong>SE Sekda Prov. Kaltim No. 300.1/3326/SATPOL.PP-IV</strong></span>
         </div>
       </div>
+
+      {/* Sync Feedback Alert */}
+      {syncNotice && (
+        <div className="bg-emerald-950/60 border border-emerald-600/50 text-emerald-300 px-4 py-2.5 rounded-xl flex items-center justify-between text-xs font-bold shadow-lg animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{syncNotice}</span>
+          </div>
+          <button 
+            type="button" 
+            onClick={() => setSyncNotice(null)}
+            className="text-emerald-400 hover:text-white"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Active Scope Status Notice Banner */}
+      {dataScope === 'kabkota' ? (
+        <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg transition ${
+          currentRegionReport.status === 'verified'
+            ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-200'
+            : currentRegionReport.status === 'submitted'
+              ? 'bg-blue-950/40 border-blue-500/50 text-blue-200'
+              : currentRegionReport.status === 'revision_needed'
+                ? 'bg-rose-950/40 border-rose-500/50 text-rose-200'
+                : 'bg-slate-900/60 border-slate-800 text-slate-300'
+        }`}>
+          <div className="flex items-start gap-3">
+            <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${
+              currentRegionReport.status === 'verified'
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : currentRegionReport.status === 'submitted'
+                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                  : currentRegionReport.status === 'revision_needed'
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                    : 'bg-slate-800 text-slate-400 border border-slate-700'
+            }`}>
+              {currentRegionReport.status === 'verified' ? (
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+              ) : currentRegionReport.status === 'submitted' ? (
+                <Clock className="w-5 h-5 text-blue-400" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-amber-400" />
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-black uppercase tracking-wider text-white">
+                  Wilayah: {currentRegionInfo.name}
+                </span>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
+                  currentRegionReport.status === 'verified'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    : currentRegionReport.status === 'submitted'
+                      ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                      : currentRegionReport.status === 'revision_needed'
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                        : 'bg-slate-800 text-slate-300 border-slate-700'
+                }`}>
+                  {currentRegionReport.status === 'verified'
+                    ? 'TERVERIFIKASI SAH OLEH SATPOL PP PROVINSI'
+                    : currentRegionReport.status === 'submitted'
+                      ? 'MENUNGGU VERIFIKASI PROVINSI'
+                      : currentRegionReport.status === 'revision_needed'
+                        ? 'PERLU PERBAIKAN / REVISI'
+                        : 'STATUS DRAFT (BELUM DIAJUKAN)'}
+                </span>
+              </div>
+
+              <p className="text-xs mt-1 text-slate-300">
+                {currentRegionReport.status === 'verified' && (
+                  <span>
+                    Laporan telah disahkan resmi oleh <strong>{currentRegionReport.verifiedBy || 'Satpol PP Prov. Kaltim'}</strong> pada {new Date(currentRegionReport.verifiedAt || '').toLocaleString('id-ID')}. Seluruh data resmi masuk ke dalam rekapitulasi agregat provinsi.
+                  </span>
+                )}
+                {currentRegionReport.status === 'submitted' && (
+                  <span>
+                    Operator daerah telah merampungkan pengisian dan mengajukan laporan ke Satpol PP Provinsi Kaltim.
+                  </span>
+                )}
+                {currentRegionReport.status === 'revision_needed' && (
+                  <span className="text-rose-300 font-semibold">
+                    Catatan Revisi: "{currentRegionReport.revisionNotes || 'Periksa kembali kelengkapan instrumen pelaporan.'}"
+                  </span>
+                )}
+                {currentRegionReport.status === 'draft' && (
+                  <span>
+                    Data masih berupa draf kerja di tingkat operator instansi ({currentRegionInfo.instansiName}).
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {userRole === 'admin_provinsi' && currentRegionReport.status !== 'verified' && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onSelectRegion) onSelectRegion(currentRegionInfo.id);
+                  onNavigateToTab('laporan');
+                }}
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Verifikasi Laporan Ini</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                if (userRole === 'admin_provinsi') {
+                  if (onSelectRegion) onSelectRegion(currentRegionInfo.id);
+                  onNavigateToTab('laporan');
+                } else {
+                  onNavigateToTab('form_kabkota');
+                }
+              }}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition flex items-center gap-1.5 border border-slate-700"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>{userRole === 'admin_provinsi' ? 'Buka Dokumen PDF' : 'Edit Formulir Daerah'}</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5">
+            <span className="p-1.5 bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/30">
+              <ShieldCheck className="w-4 h-4" />
+            </span>
+            <div>
+              <span className="font-extrabold text-white">Status Pelaporan Terverifikasi se-Kalimantan Timur</span>
+              <p className="text-[11px] text-slate-400">
+                Monitoring kepatuhan pengisian 10 Kabupaten/Kota sesuai batas waktu pelaporan.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-[11px] flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              {verifiedCount} Terverifikasi Sah
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold text-[11px] flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {submittedCount} Menunggu Verifikasi
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 font-medium text-[11px]">
+              {draftCount + revisionCount} Draf / Belum Diajukan
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* 6 Key Stat Cards: Strictly matching Lampiran II & III */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4">
@@ -1030,6 +1240,212 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* 10 Kabupaten/Kota Real-time Status & Oversight Table */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div>
+            <div className="flex items-center gap-2">
+              <FileCheck className="w-5 h-5 text-amber-500" />
+              <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                Status Keterisian & Verifikasi 10 Kab/Kota se-Kaltim (Real-Time)
+              </h3>
+              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                {verifiedCount} dari 10 Wilayah Sah
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Pantauan langsung input data operator Kabupaten/Kota dan status verifikasi resmi Satpol PP Prov. Kaltim.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleManualSync}
+              disabled={isRefreshing}
+              className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-rose-500' : 'text-slate-400'}`} />
+              <span>{isRefreshing ? 'Menyinkron...' : 'Sinkron Cloud'}</span>
+            </button>
+            {userRole === 'admin_provinsi' && (
+              <button
+                type="button"
+                onClick={() => onNavigateToTab('laporan')}
+                className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition flex items-center gap-1.5 shadow"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Buka Menu Verifikasi Provinsi</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                <th className="py-3 px-3">No</th>
+                <th className="py-3 px-3">Kabupaten / Kota</th>
+                <th className="py-3 px-3 text-center">Status Verifikasi</th>
+                <th className="py-3 px-3 text-center">SDM Personel</th>
+                <th className="py-3 px-3 text-center">Armada Damkar</th>
+                <th className="py-3 px-3 text-center">Kebakaran & SPM 15m</th>
+                <th className="py-3 px-3 text-center">Rescue</th>
+                <th className="py-3 px-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60 font-medium">
+              {regionReportsList.map((item, idx) => {
+                const isSelected = activeRegionId === item.region.id && dataScope === 'kabkota';
+                const isVerified = item.report.status === 'verified';
+                const isSubmitted = item.report.status === 'submitted';
+                const isRevision = item.report.status === 'revision_needed';
+
+                return (
+                  <tr 
+                    key={item.region.id}
+                    className={`hover:bg-slate-800/50 transition cursor-pointer ${
+                      isSelected ? 'bg-rose-950/20 border-l-2 border-rose-500' : ''
+                    }`}
+                    onClick={() => {
+                      if (!isOperator) {
+                        setDataScope('kabkota');
+                        setActiveRegionId(item.region.id);
+                        if (onSelectRegion) onSelectRegion(item.region.id);
+                      }
+                    }}
+                  >
+                    <td className="py-3 px-3 text-slate-500 font-mono text-[11px]">
+                      {idx + 1}
+                    </td>
+
+                    <td className="py-3 px-3">
+                      <div className="font-bold text-white text-xs flex items-center gap-1.5">
+                        <span>{item.region.name}</span>
+                        {item.region.id === 'berau' && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            Berau
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-400 truncate max-w-xs">
+                        {item.region.instansiName}
+                      </div>
+                    </td>
+
+                    <td className="py-3 px-3 text-center">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                        isVerified
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                          : isSubmitted
+                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
+                            : isRevision
+                              ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                              : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}>
+                        {isVerified ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <span>Terverifikasi Sah</span>
+                          </>
+                        ) : isSubmitted ? (
+                          <>
+                            <Clock className="w-3 h-3 text-blue-400" />
+                            <span>Menunggu Verifikasi</span>
+                          </>
+                        ) : isRevision ? (
+                          <>
+                            <AlertCircle className="w-3 h-3 text-rose-400" />
+                            <span>Perlu Revisi</span>
+                          </>
+                        ) : (
+                          <span>Draft</span>
+                        )}
+                      </span>
+                      {item.report.lastUpdated && item.report.lastUpdated !== '1970-01-01T00:00:00.000Z' && (
+                        <span className="block text-[9px] text-slate-500 font-mono mt-0.5">
+                          {new Date(item.report.lastUpdated).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-3 text-center font-mono">
+                      <span className="text-white font-bold">{item.totalSdm}</span>
+                      <span className="text-[10px] text-slate-500 block">
+                        {item.report.bagianB.totalPns}P / {item.report.bagianB.totalPppk}K / {item.report.bagianB.nonAsn}N
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-3 text-center font-mono">
+                      <span className="text-white font-bold">{item.totalArmada}</span>
+                      <span className="text-[10px] text-slate-500 block">
+                        {item.report.bagianC.mobilDamkar} Damkar / {item.report.bagianC.mobilTangki} Tangki
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-3 text-center font-mono">
+                      <span className="text-rose-400 font-bold">{item.report.bagianE.totalKejadian}</span>
+                      <span className="text-[10px] text-emerald-400 block font-semibold">
+                        SPM {item.spmRate}% ({item.report.bagianE.response15Menit})
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-3 text-center font-mono">
+                      <span className="text-blue-400 font-bold">{item.report.bagianF.totalOperasi}</span>
+                      <span className="text-[10px] text-slate-500 block">
+                        {item.report.bagianG.jiwaSelamat} Selamat
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      {userRole === 'admin_provinsi' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onSelectRegion) onSelectRegion(item.region.id);
+                            onNavigateToTab('laporan');
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition inline-flex items-center gap-1 ${
+                            !isVerified
+                              ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-black shadow'
+                              : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                          }`}
+                        >
+                          {!isVerified ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Verifikasi</span>
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>Dokumen PDF</span>
+                            </>
+                          )}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onSelectRegion) onSelectRegion(item.region.id);
+                            onNavigateToTab('form_kabkota');
+                          }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition inline-flex items-center gap-1"
+                        >
+                          <span>Rincian</span>
+                          <ChevronRight className="w-3 h-3" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Map & Quick Report Form Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

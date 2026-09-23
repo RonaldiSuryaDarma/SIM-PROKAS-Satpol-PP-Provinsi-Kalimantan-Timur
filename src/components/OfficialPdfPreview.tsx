@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Printer, ArrowLeft, CheckCircle2, ShieldCheck, QrCode, 
   FileText, Calendar, Building2, Phone, MapPin, Users,
@@ -30,6 +30,14 @@ export const OfficialPdfPreview: React.FC<OfficialPdfPreviewProps> = ({
   );
   const [selectedRegionId, setSelectedRegionId] = useState<string>(initialRegionId);
   const [copied, setCopied] = useState<boolean>(false);
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const unsub = storageService.subscribe(() => {
+      setTick(t => t + 1);
+    });
+    return () => unsub();
+  }, []);
 
   const activePeriod: ReportPeriod = activeLampiran === 'lampiran_3' ? 'SEMESTER_2' : 'SEMESTER_1';
   const report: DamkarReport = storageService.getReport(selectedRegionId, activePeriod, 2026);
