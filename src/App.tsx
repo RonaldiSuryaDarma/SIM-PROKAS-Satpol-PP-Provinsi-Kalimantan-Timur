@@ -39,7 +39,13 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState<GasTabType>('dashboard');
   const [userSession, setUserSession] = useState<UserSession | null>(() => authService.getSession());
   const [userRole, setUserRole] = useState<UserRole>(() => authService.getSession()?.role || 'admin_provinsi');
-  const [selectedRegionId, setSelectedRegionId] = useState<string>(() => authService.getSession()?.regionId || 'samarinda');
+  const [selectedRegionId, setSelectedRegionId] = useState<string>(() => {
+    const sess = authService.getSession();
+    if (sess?.role === 'admin_provinsi') {
+      return 'samarinda';
+    }
+    return sess?.regionId || 'samarinda';
+  });
   const [period, setPeriod] = useState<ReportPeriod>('SEMESTER_1');
   const [syncState, setSyncState] = useState<SyncState>(storageService.getSyncState());
   const [flyToCoords, setFlyToCoords] = useState<[number, number] | null>(null);
@@ -476,12 +482,15 @@ export default function App() {
               onRefillFuel={handleRefillFuel}
               onToggleStatus={handleToggleVehicleStatus}
               onAddVehicle={handleAddVehicle}
+              userRole={userRole}
+              userSession={userSession}
             />
           )}
 
           {currentTab === 'eksekutif' && (
             <EksekutifView
               period={period}
+              userRole={userRole}
               onNavigateToReport={(regId) => {
                 setSelectedRegionId(regId);
                 if (userRole === 'admin_provinsi') {

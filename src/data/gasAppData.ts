@@ -38,6 +38,7 @@ export interface GasPersonel {
   avatar: string;
   sertifikasi?: string[];
   kategori?: 'Struktural' | 'Fungsional' | 'Pelaksana' | 'PPPK' | 'Relawan';
+  regionId?: string;
 }
 
 export interface RabItem {

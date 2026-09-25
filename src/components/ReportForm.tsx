@@ -39,8 +39,12 @@ export const ReportForm: React.FC<ReportFormProps> = ({
   onSelectRegion,
   onSelectPeriod
 }) => {
+  // Ensure valid Kab/Kota region ID (if Super Admin region is 'kaltim', default to 'samarinda')
+  const activeRegionId = REGIONS_KALTIM.some(r => r.id === regionId) ? regionId : 'samarinda';
+  const regionInfo = REGIONS_KALTIM.find(r => r.id === activeRegionId) || REGIONS_KALTIM[0];
+
   const [report, setReport] = useState<DamkarReport>(() => 
-    storageService.getReport(regionId, period, 2026)
+    storageService.getReport(activeRegionId, period, 2026)
   );
   const [activeSection, setActiveSection] = useState<'all' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H'>('all');
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -51,17 +55,15 @@ export const ReportForm: React.FC<ReportFormProps> = ({
 
   // Sync state if region or period changes or if updated remotely via Firestore
   useEffect(() => {
-    const current = storageService.getReport(regionId, period, 2026);
+    const current = storageService.getReport(activeRegionId, period, 2026);
     setReport({ ...current });
 
     const unsub = storageService.subscribe(() => {
-      const refreshed = storageService.getReport(regionId, period, 2026);
+      const refreshed = storageService.getReport(activeRegionId, period, 2026);
       setReport({ ...refreshed });
     });
     return () => unsub();
-  }, [regionId, period]);
-
-  const regionInfo = REGIONS_KALTIM.find(r => r.id === regionId) || REGIONS_KALTIM[0];
+  }, [activeRegionId, period]);
 
   const handleFieldChange = (section: string, field: string, value: any, subfield?: string) => {
     setReport(prev => {
@@ -96,9 +98,9 @@ export const ReportForm: React.FC<ReportFormProps> = ({
       'submitted', 
       undefined, 
       undefined, 
-      userSession?.userName || report.pengisi.nama || 'Operator ' + regionInfo.name
+      userSession?.userName || report.pengisi?.nama || 'Damkar ' + regionInfo.name
     );
-    const refreshed = storageService.getReport(regionId, period, 2026);
+    const refreshed = storageService.getReport(activeRegionId, period, 2026);
     setReport({ ...refreshed });
     setSubmitModalOpen(false);
     setActionFeedbackMsg(`✅ Laporan ${regionInfo.name} BERHASIL DIKIRIM ke Satpol PP Provinsi Kaltim! Data realtime tercatat dan status langsung DIAJUKAN.`);
@@ -114,7 +116,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
       verifierName,
       verifierName
     );
-    const refreshed = storageService.getReport(regionId, period, 2026);
+    const refreshed = storageService.getReport(activeRegionId, period, 2026);
     setReport({ ...refreshed });
     setActionFeedbackMsg(`✅ Laporan ${regionInfo.name} BERHASIL DIVERIFIKASI SAH! Data realtime telah resmi masuk ke dalam rekapitulasi provinsi dan dashboard operasional.`);
     setTimeout(() => setActionFeedbackMsg(null), 7000);
@@ -130,7 +132,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
       verifierName,
       verifierName
     );
-    const refreshed = storageService.getReport(regionId, period, 2026);
+    const refreshed = storageService.getReport(activeRegionId, period, 2026);
     setReport({ ...refreshed });
     setRevisionModalOpen(false);
     setRevisionNotesInput('');
@@ -196,7 +198,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   Pilih Wilayah (Super Admin):
                 </span>
                 <select
-                  value={regionId}
+                  value={activeRegionId}
                   onChange={(e) => onSelectRegion(e.target.value)}
                   className="text-xs font-bold bg-white text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 >
@@ -403,7 +405,13 @@ export const ReportForm: React.FC<ReportFormProps> = ({
               <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800/80">
                 <span className="text-slate-500 text-[10px] block mb-0.5">Waktu Pengajuan / Update</span>
                 <span className="font-bold text-slate-300 block">
-                  {report.submittedAt ? new Date(report.submittedAt).toLocaleDateString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'Belum Diajukan'}
+                  {report.submittedAt ? (() => {
+                    try {
+                      return new Date(report.submittedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+                    } catch {
+                      return String(report.submittedAt);
+                    }
+                  })() : 'Belum Diajukan'}
                 </span>
                 <span className="text-slate-400 text-[11px]">Tingkat Kelengkapan: {completeness}%</span>
               </div>
@@ -424,7 +432,13 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   </span>
                   {report.verifiedAt && (
                     <span className="text-[10px] text-slate-400">
-                      Dikirim: {new Date(report.verifiedAt).toLocaleDateString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
+                      Dikirim: {(() => {
+                        try {
+                          return new Date(report.verifiedAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
+                        } catch {
+                          return String(report.verifiedAt);
+                        }
+                      })()}
                     </span>
                   )}
                 </div>

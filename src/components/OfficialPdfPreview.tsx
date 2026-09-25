@@ -432,8 +432,15 @@ Kerugian: Rp ${(report.bagianG.taksiranKerugian || 0).toLocaleString('id-ID')}`;
                         </span>
                       </td>
                       <td className="p-2 border-r border-slate-300 text-slate-800">
-                        <div className="font-semibold">{reg.kadisDefault.nama}</div>
-                        <div className="text-[10px] text-slate-500 font-mono">NIP. {reg.kadisDefault.nip}</div>
+                        {(() => {
+                          const r = storageService.getReport(reg.id, 'SEMESTER_1', 2026);
+                          return (
+                            <>
+                              <div className="font-semibold">{r.pejabat?.nama || '(Menunggu Input Operator)'}</div>
+                              <div className="text-[10px] text-slate-500 font-mono">NIP. {r.pejabat?.nip || '-'}</div>
+                            </>
+                          );
+                        })()}
                       </td>
                       <td className="p-2 text-center">
                         <div className="flex items-center justify-center gap-1">
@@ -533,7 +540,7 @@ Kerugian: Rp ${(report.bagianG.taksiranKerugian || 0).toLocaleString('id-ID')}`;
                   <tr>
                     <td className="text-slate-500 py-0.5">• Jabatan</td>
                     <td>:</td>
-                    <td className="text-slate-800">{report.pengisi.jabatan || 'Analis Kebakaran / Kasi Ops'}</td>
+                    <td className="text-slate-800">{report.pengisi.jabatan || '-'}</td>
                   </tr>
                   {report.pengisi.noHp && (
                     <tr>
@@ -556,17 +563,17 @@ Kerugian: Rp ${(report.bagianG.taksiranKerugian || 0).toLocaleString('id-ID')}`;
                   <tr>
                     <td className="w-20 text-slate-500 py-0.5">• Nama</td>
                     <td className="w-3">:</td>
-                    <td className="font-semibold text-slate-800">{report.pejabat.nama || region.kadisDefault.nama}</td>
+                    <td className="font-semibold text-slate-800">{report.pejabat.nama || '(Belum Diisi Oleh Operator)'}</td>
                   </tr>
                   <tr>
                     <td className="text-slate-500 py-0.5">• NIP</td>
                     <td>:</td>
-                    <td className="font-mono text-slate-800">{report.pejabat.nip || region.kadisDefault.nip}</td>
+                    <td className="font-mono text-slate-800">{report.pejabat.nip || '-'}</td>
                   </tr>
                   <tr>
                     <td className="text-slate-500 py-0.5">• Jabatan</td>
                     <td>:</td>
-                    <td className="text-slate-800">{report.pejabat.jabatan || region.kadisDefault.jabatan}</td>
+                    <td className="text-slate-800">{report.pejabat.jabatan || ('Kepala ' + region.instansiName)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -762,10 +769,10 @@ Kerugian: Rp ${(report.bagianG.taksiranKerugian || 0).toLocaleString('id-ID')}`;
               </div>
 
               <p className="font-bold underline text-slate-900 mt-2">
-                {report.pejabat.nama || region.kadisDefault.nama}
+                {report.pejabat.nama || '(Belum Diisi Oleh Operator)'}
               </p>
               <p className="text-slate-600 font-mono text-[11px]">
-                NIP. {report.pejabat.nip || region.kadisDefault.nip}
+                NIP. {report.pejabat.nip || '-'}
               </p>
             </div>
 

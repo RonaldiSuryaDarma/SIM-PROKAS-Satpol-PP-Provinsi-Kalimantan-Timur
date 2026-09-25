@@ -17,16 +17,18 @@ import {
 } from 'lucide-react';
 import { REGIONS_KALTIM } from '../data/regions';
 import { storageService } from '../services/storageService';
-import { ReportPeriod } from '../types';
+import { ReportPeriod, UserRole } from '../types';
 
 interface EksekutifViewProps {
   period?: ReportPeriod;
   onNavigateToReport?: (regionId: string) => void;
+  userRole?: UserRole;
 }
 
 export const EksekutifView: React.FC<EksekutifViewProps> = ({ 
   period = 'SEMESTER_1',
-  onNavigateToReport
+  onNavigateToReport,
+  userRole = 'admin_provinsi'
 }) => {
   const [, setTick] = useState(0);
 
@@ -110,34 +112,36 @@ export const EksekutifView: React.FC<EksekutifViewProps> = ({
         </div>
       </div>
 
-      {/* Progress Pelaporan 10 Daerah */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
-            <FileText className="w-5 h-5" />
+      {/* Progress Pelaporan 10 Daerah - HANYA UNTUK SUPER ADMIN PROVINSI */}
+      {userRole === 'admin_provinsi' && (
+        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-white block">
+                Status Pengisian Laporan 10 Kabupaten / Kota:
+              </span>
+              <span className="text-[11px] text-slate-400">
+                {summary.statusBreakdown.verified} Terverifikasi Sah • {summary.statusBreakdown.submitted} Diajukan • {summary.statusBreakdown.revision} Perlu Revisi • {summary.statusBreakdown.draft} Proses Draft
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="text-xs font-bold text-white block">
-              Status Pengisian Laporan 10 Kabupaten / Kota:
-            </span>
-            <span className="text-[11px] text-slate-400">
-              {summary.statusBreakdown.verified} Terverifikasi Sah • {summary.statusBreakdown.submitted} Diajukan • {summary.statusBreakdown.revision} Perlu Revisi • {summary.statusBreakdown.draft} Proses Draft
-            </span>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 font-bold border border-emerald-500/30">
-            {summary.statusBreakdown.verified} Sah
-          </span>
-          <span className="px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-400 font-bold border border-blue-500/30">
-            {summary.statusBreakdown.submitted} Diajukan
-          </span>
-          <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 font-bold border border-slate-700">
-            {summary.statusBreakdown.draft} Draft
-          </span>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 font-bold border border-emerald-500/30">
+              {summary.statusBreakdown.verified} Sah
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-400 font-bold border border-blue-500/30">
+              {summary.statusBreakdown.submitted} Diajukan
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 font-bold border border-slate-700">
+              {summary.statusBreakdown.draft} Draft
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 4 Real-time Executive KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -352,78 +356,80 @@ export const EksekutifView: React.FC<EksekutifViewProps> = ({
           </div>
         </div>
 
-        {/* Ringkasan Sebaran per Kabupaten/Kota - SINKRON DARI HASIL INPUT */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="font-bold text-white text-base flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-rose-500" />
-              Sebaran Data & Status Laporan 10 Kab/Kota
-            </h4>
-            <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-              10 Wilayah
-            </span>
-          </div>
-          <p className="text-xs text-slate-400">
-            Data riil insiden kebakaran, penyelamatan, dan kerugian yang diisi oleh masing-masing Pemda.
-          </p>
+        {/* Ringkasan Sebaran per Kabupaten/Kota - SINKRON DARI HASIL INPUT - HANYA UNTUK SUPER ADMIN PROVINSI */}
+        {userRole === 'admin_provinsi' && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-white text-base flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-rose-500" />
+                Sebaran Data & Status Laporan 10 Kab/Kota
+              </h4>
+              <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                10 Wilayah
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">
+              Data riil insiden kebakaran, penyelamatan, dan kerugian yang diisi oleh masing-masing Pemda.
+            </p>
 
-          <div className="space-y-2.5 max-h-84 overflow-y-auto pr-1">
-            {REGIONS_KALTIM.map((reg) => {
-              const rep = storageService.getReport(reg.id, period, 2026);
-              const kebakaranCount = rep.bagianE?.totalKejadian || 0;
-              const rescueCount = rep.bagianF?.totalOperasi || 0;
-              const kerugianNominal = rep.bagianG?.taksiranKerugian || 0;
+            <div className="space-y-2.5 max-h-84 overflow-y-auto pr-1">
+              {REGIONS_KALTIM.map((reg) => {
+                const rep = storageService.getReport(reg.id, period, 2026);
+                const kebakaranCount = rep.bagianE?.totalKejadian || 0;
+                const rescueCount = rep.bagianF?.totalOperasi || 0;
+                const kerugianNominal = rep.bagianG?.taksiranKerugian || 0;
 
-              return (
-                <div 
-                  key={reg.id}
-                  className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs hover:border-slate-700 transition gap-2"
-                >
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-white block">
-                        {reg.name}
-                      </span>
-                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border uppercase ${
-                        rep.status === 'verified'
-                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                          : rep.status === 'submitted'
-                            ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-                            : rep.status === 'revision_needed'
-                              ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                              : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}>
-                        {rep.status === 'verified' ? 'Sah' : rep.status === 'submitted' ? 'Diajukan' : rep.status === 'revision_needed' ? 'Revisi' : 'Draft'}
+                return (
+                  <div 
+                    key={reg.id}
+                    className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs hover:border-slate-700 transition gap-2"
+                  >
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-white block">
+                          {reg.name}
+                        </span>
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border uppercase ${
+                          rep.status === 'verified'
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                            : rep.status === 'submitted'
+                              ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                              : rep.status === 'revision_needed'
+                                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}>
+                          {rep.status === 'verified' ? 'Sah' : rep.status === 'submitted' ? 'Diajukan' : rep.status === 'revision_needed' ? 'Revisi' : 'Draft'}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-400 block truncate">
+                        {reg.instansiName}
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-400 block truncate">
-                      {reg.instansiName}
-                    </span>
-                  </div>
 
-                  <div className="text-right shrink-0 space-y-0.5">
-                    <span className="font-bold text-rose-400 block font-mono text-xs">
-                      {kebakaranCount} Kebakaran • {rescueCount} Rescue
-                    </span>
-                    <span className="text-[10px] text-slate-400 block font-mono">
-                      Kerugian: {formatRupiah(kerugianNominal)}
-                    </span>
-                    {onNavigateToReport && (
-                      <button
-                        type="button"
-                        onClick={() => onNavigateToReport(reg.id)}
-                        className="text-[10px] text-orange-400 hover:text-orange-300 font-bold underline inline-flex items-center gap-1 mt-0.5"
-                      >
-                        <FileCheck className="w-3 h-3" />
-                        Lihat Instrumen
-                      </button>
-                    )}
+                    <div className="text-right shrink-0 space-y-0.5">
+                      <span className="font-bold text-rose-400 block font-mono text-xs">
+                        {kebakaranCount} Kebakaran • {rescueCount} Rescue
+                      </span>
+                      <span className="text-[10px] text-slate-400 block font-mono">
+                        Kerugian: {formatRupiah(kerugianNominal)}
+                      </span>
+                      {onNavigateToReport && (
+                        <button
+                          type="button"
+                          onClick={() => onNavigateToReport(reg.id)}
+                          className="text-[10px] text-orange-400 hover:text-orange-300 font-bold underline inline-flex items-center gap-1 mt-0.5"
+                        >
+                          <FileCheck className="w-3 h-3" />
+                          Lihat Instrumen
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
 

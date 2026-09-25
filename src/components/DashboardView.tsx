@@ -444,17 +444,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          {/* Quick Realtime Cloud Refresh */}
-          <button
-            type="button"
-            onClick={handleManualSync}
-            disabled={isRefreshing}
-            className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:border-slate-700 transition shrink-0"
-            title="Sinkronkan data secara realtime dari Cloud Firestore"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-rose-500' : 'text-slate-400'}`} />
-            <span>{isRefreshing ? 'Menyinkronkan...' : 'Sinkron Realtime Cloud'}</span>
-          </button>
+          {/* Quick Realtime Cloud Refresh - HANYA UNTUK SUPER ADMIN PROVINSI */}
+          {userRole === 'admin_provinsi' && (
+            <button
+              type="button"
+              onClick={handleManualSync}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:border-slate-700 transition shrink-0"
+              title="Sinkronkan data secara realtime dari Cloud Firestore"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-rose-500' : 'text-slate-400'}`} />
+              <span>{isRefreshing ? 'Menyinkronkan...' : 'Sinkron Realtime Cloud'}</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-[11px] text-slate-400 bg-slate-950/70 border border-slate-800 px-3 py-1.5 rounded-xl shrink-0">
@@ -1241,35 +1243,35 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
-      {/* 10 Kabupaten/Kota Real-time Status & Oversight Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-          <div>
-            <div className="flex items-center gap-2">
-              <FileCheck className="w-5 h-5 text-amber-500" />
-              <h3 className="text-sm font-black uppercase tracking-wider text-white">
-                Status Keterisian & Verifikasi 10 Kab/Kota se-Kaltim (Real-Time)
-              </h3>
-              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                {verifiedCount} dari 10 Wilayah Sah
-              </span>
+      {/* 10 Kabupaten/Kota Real-time Status & Oversight Table - HANYA UNTUK SUPER ADMIN PROVINSI */}
+      {userRole === 'admin_provinsi' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div>
+              <div className="flex items-center gap-2">
+                <FileCheck className="w-5 h-5 text-amber-500" />
+                <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                  Status Keterisian & Verifikasi 10 Kab/Kota se-Kaltim (Real-Time)
+                </h3>
+                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  {verifiedCount} dari 10 Wilayah Sah
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Pantauan langsung input data operator Kabupaten/Kota dan status verifikasi resmi Satpol PP Prov. Kaltim.
+              </p>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Pantauan langsung input data operator Kabupaten/Kota dan status verifikasi resmi Satpol PP Prov. Kaltim.
-            </p>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleManualSync}
-              disabled={isRefreshing}
-              className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-rose-500' : 'text-slate-400'}`} />
-              <span>{isRefreshing ? 'Menyinkron...' : 'Sinkron Cloud'}</span>
-            </button>
-            {userRole === 'admin_provinsi' && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleManualSync}
+                disabled={isRefreshing}
+                className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-rose-500' : 'text-slate-400'}`} />
+                <span>{isRefreshing ? 'Menyinkron...' : 'Sinkron Cloud'}</span>
+              </button>
               <button
                 type="button"
                 onClick={() => onNavigateToTab('laporan')}
@@ -1278,124 +1280,122 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Buka Menu Verifikasi Provinsi</span>
               </button>
-            )}
+            </div>
           </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
-                <th className="py-3 px-3">No</th>
-                <th className="py-3 px-3">Kabupaten / Kota</th>
-                <th className="py-3 px-3 text-center">Status Verifikasi</th>
-                <th className="py-3 px-3 text-center">SDM Personel</th>
-                <th className="py-3 px-3 text-center">Armada Damkar</th>
-                <th className="py-3 px-3 text-center">Kebakaran & SPM 15m</th>
-                <th className="py-3 px-3 text-center">Rescue</th>
-                <th className="py-3 px-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 font-medium">
-              {regionReportsList.map((item, idx) => {
-                const isSelected = activeRegionId === item.region.id && dataScope === 'kabkota';
-                const isVerified = item.report.status === 'verified';
-                const isSubmitted = item.report.status === 'submitted';
-                const isRevision = item.report.status === 'revision_needed';
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                  <th className="py-3 px-3">No</th>
+                  <th className="py-3 px-3">Kabupaten / Kota</th>
+                  <th className="py-3 px-3 text-center">Status Verifikasi</th>
+                  <th className="py-3 px-3 text-center">SDM Personel</th>
+                  <th className="py-3 px-3 text-center">Armada Damkar</th>
+                  <th className="py-3 px-3 text-center">Kebakaran & SPM 15m</th>
+                  <th className="py-3 px-3 text-center">Rescue</th>
+                  <th className="py-3 px-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-medium">
+                {regionReportsList.map((item, idx) => {
+                  const isSelected = activeRegionId === item.region.id && dataScope === 'kabkota';
+                  const isVerified = item.report.status === 'verified';
+                  const isSubmitted = item.report.status === 'submitted';
+                  const isRevision = item.report.status === 'revision_needed';
 
-                return (
-                  <tr 
-                    key={item.region.id}
-                    className={`hover:bg-slate-800/50 transition cursor-pointer ${
-                      isSelected ? 'bg-rose-950/20 border-l-2 border-rose-500' : ''
-                    }`}
-                    onClick={() => {
-                      if (!isOperator) {
-                        setDataScope('kabkota');
-                        setActiveRegionId(item.region.id);
-                        if (onSelectRegion) onSelectRegion(item.region.id);
-                      }
-                    }}
-                  >
-                    <td className="py-3 px-3 text-slate-500 font-mono text-[11px]">
-                      {idx + 1}
-                    </td>
+                  return (
+                    <tr 
+                      key={item.region.id}
+                      className={`hover:bg-slate-800/50 transition cursor-pointer ${
+                        isSelected ? 'bg-rose-950/20 border-l-2 border-rose-500' : ''
+                      }`}
+                      onClick={() => {
+                        if (!isOperator) {
+                          setDataScope('kabkota');
+                          setActiveRegionId(item.region.id);
+                          if (onSelectRegion) onSelectRegion(item.region.id);
+                        }
+                      }}
+                    >
+                      <td className="py-3 px-3 text-slate-500 font-mono text-[11px]">
+                        {idx + 1}
+                      </td>
 
-                    <td className="py-3 px-3">
-                      <div className="font-bold text-white text-xs flex items-center gap-1.5">
-                        <span>{item.region.name}</span>
-                      </div>
-                      <div className="text-[11px] text-slate-400 truncate max-w-xs">
-                        {item.region.instansiName}
-                      </div>
-                    </td>
+                      <td className="py-3 px-3">
+                        <div className="font-bold text-white text-xs flex items-center gap-1.5">
+                          <span>{item.region.name}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-400 truncate max-w-xs">
+                          {item.region.instansiName}
+                        </div>
+                      </td>
 
-                    <td className="py-3 px-3 text-center">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                        isVerified
-                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                          : isSubmitted
-                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
-                            : isRevision
-                              ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
-                              : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}>
-                        {isVerified ? (
-                          <>
-                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                            <span>Terverifikasi Sah</span>
-                          </>
-                        ) : isSubmitted ? (
-                          <>
-                            <Clock className="w-3 h-3 text-blue-400" />
-                            <span>Menunggu Verifikasi</span>
-                          </>
-                        ) : isRevision ? (
-                          <>
-                            <AlertCircle className="w-3 h-3 text-rose-400" />
-                            <span>Perlu Revisi</span>
-                          </>
-                        ) : (
-                          <span>Draft</span>
-                        )}
-                      </span>
-                      {item.report.lastUpdated && item.report.lastUpdated !== '1970-01-01T00:00:00.000Z' && (
-                        <span className="block text-[9px] text-slate-500 font-mono mt-0.5">
-                          {new Date(item.report.lastUpdated).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      <td className="py-3 px-3 text-center">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                          isVerified
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                            : isSubmitted
+                              ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
+                              : isRevision
+                                ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                                : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}>
+                          {isVerified ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                              <span>Terverifikasi Sah</span>
+                            </>
+                          ) : isSubmitted ? (
+                            <>
+                              <Clock className="w-3 h-3 text-blue-400" />
+                              <span>Menunggu Verifikasi</span>
+                            </>
+                          ) : isRevision ? (
+                            <>
+                              <AlertCircle className="w-3 h-3 text-rose-400" />
+                              <span>Perlu Revisi</span>
+                            </>
+                          ) : (
+                            <span>Draft</span>
+                          )}
                         </span>
-                      )}
-                    </td>
+                        {item.report.lastUpdated && item.report.lastUpdated !== '1970-01-01T00:00:00.000Z' && (
+                          <span className="block text-[9px] text-slate-500 font-mono mt-0.5">
+                            {new Date(item.report.lastUpdated).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </td>
 
-                    <td className="py-3 px-3 text-center font-mono">
-                      <span className="text-white font-bold">{item.totalSdm}</span>
-                      <span className="text-[10px] text-slate-500 block">
-                        {item.report.bagianB.totalPns}P / {item.report.bagianB.totalPppk}K / {item.report.bagianB.nonAsn}N
-                      </span>
-                    </td>
+                      <td className="py-3 px-3 text-center font-mono">
+                        <span className="text-white font-bold">{item.totalSdm}</span>
+                        <span className="text-[10px] text-slate-500 block">
+                          {item.report.bagianB.totalPns}P / {item.report.bagianB.totalPppk}K / {item.report.bagianB.nonAsn}N
+                        </span>
+                      </td>
 
-                    <td className="py-3 px-3 text-center font-mono">
-                      <span className="text-white font-bold">{item.totalArmada}</span>
-                      <span className="text-[10px] text-slate-500 block">
-                        {item.report.bagianC.mobilDamkar} Damkar / {item.report.bagianC.mobilTangki} Tangki
-                      </span>
-                    </td>
+                      <td className="py-3 px-3 text-center font-mono">
+                        <span className="text-white font-bold">{item.totalArmada}</span>
+                        <span className="text-[10px] text-slate-500 block">
+                          {item.report.bagianC.mobilDamkar} Damkar / {item.report.bagianC.mobilTangki} Tangki
+                        </span>
+                      </td>
 
-                    <td className="py-3 px-3 text-center font-mono">
-                      <span className="text-rose-400 font-bold">{item.report.bagianE.totalKejadian}</span>
-                      <span className="text-[10px] text-emerald-400 block font-semibold">
-                        SPM {item.spmRate}% ({item.report.bagianE.response15Menit})
-                      </span>
-                    </td>
+                      <td className="py-3 px-3 text-center font-mono">
+                        <span className="text-rose-400 font-bold">{item.report.bagianE.totalKejadian}</span>
+                        <span className="text-[10px] text-emerald-400 block font-semibold">
+                          SPM {item.spmRate}% ({item.report.bagianE.response15Menit})
+                        </span>
+                      </td>
 
-                    <td className="py-3 px-3 text-center font-mono">
-                      <span className="text-blue-400 font-bold">{item.report.bagianF.totalOperasi}</span>
-                      <span className="text-[10px] text-slate-500 block">
-                        {item.report.bagianG.jiwaSelamat} Selamat
-                      </span>
-                    </td>
+                      <td className="py-3 px-3 text-center font-mono">
+                        <span className="text-blue-400 font-bold">{item.report.bagianF.totalOperasi}</span>
+                        <span className="text-[10px] text-slate-500 block">
+                          {item.report.bagianG.jiwaSelamat} Selamat
+                        </span>
+                      </td>
 
-                    <td className="py-3 px-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      {userRole === 'admin_provinsi' ? (
+                      <td className="py-3 px-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
                           onClick={() => {
@@ -1420,27 +1420,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             </>
                           )}
                         </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (onSelectRegion) onSelectRegion(item.region.id);
-                            onNavigateToTab('form_kabkota');
-                          }}
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition inline-flex items-center gap-1"
-                        >
-                          <span>Rincian</span>
-                          <ChevronRight className="w-3 h-3" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Map & Quick Report Form Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

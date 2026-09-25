@@ -100,7 +100,7 @@ export const AccountManagementView: React.FC<AccountManagementViewProps> = ({ on
     const bodyText = accounts
       .filter(a => a.session.role === 'operator_kabkota')
       .map((a, idx) => {
-        return `${idx + 1}. *${a.session.userName}*\n   • Nama Instansi: ${a.session.instansi}\n   • Username: \`${a.username}\`\n   • Password: \`${a.password}\`\n`;
+        return `${idx + 1}. *${a.session.userName}*\n   • Kab/Kota: ${a.session.instansi}\n   • Username: \`${a.username}\`\n   • Password: \`${a.password}\`\n`;
       })
       .join('\n');
     const footerText = `\n_Tautan Akses Aplikasi:_ ${window.location.origin}\n_Harap tidak membagikan kredensial ini kepada pihak yang tidak berkepentingan._`;

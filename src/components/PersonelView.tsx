@@ -32,19 +32,14 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
   userSession
 }) => {
   const isProvinsi = userRole === 'admin_provinsi';
-  const [activeTab, setActiveTab] = useState<'rekap_daerah' | 'daftar_petugas'>(
-    isProvinsi ? 'rekap_daerah' : 'daftar_petugas'
-  );
-  const [selectedRegionFilter, setSelectedRegionFilter] = useState<string>('all');
+  const operatorRegionId = userSession?.regionId || 'samarinda';
+  const operatorRegionInfo = REGIONS_KALTIM.find(r => r.id === operatorRegionId) || REGIONS_KALTIM[0];
+
+  const [activeTab, setActiveTab] = useState<'rekap_daerah' | 'daftar_petugas'>('rekap_daerah');
+  const [selectedRegionFilter, setSelectedRegionFilter] = useState<string>(isProvinsi ? 'all' : operatorRegionId);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (!isProvinsi && activeTab === 'rekap_daerah') {
-      setActiveTab('daftar_petugas');
-    }
-  }, [isProvinsi, activeTab]);
 
   // Live reports from 10 Kab/Kota
   const [reports, setReports] = useState<DamkarReport[]>(() => 
@@ -70,8 +65,6 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
     return acc + (Number(s.instruktur) || 0) + (Number(s.inspektur) || 0) + (Number(s.mfr) || 0) + (Number(s.rescue) || 0);
   }, 0);
 
-  const operatorRegionId = userSession?.regionId || 'samarinda';
-  const operatorRegionInfo = REGIONS_KALTIM.find(r => r.id === operatorRegionId) || REGIONS_KALTIM[0];
   const operatorReport = reports.find(r => r.regionId === operatorRegionId) || storageService.getReport(operatorRegionId, 'SEMESTER_1', 2026);
 
   const opPns = Number(operatorReport.bagianB.totalPns) || 0;
@@ -84,9 +77,15 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
     return (Number(s.instruktur) || 0) + (Number(s.inspektur) || 0) + (Number(s.mfr) || 0) + (Number(s.rescue) || 0);
   })();
 
-  const displayedReports = selectedRegionFilter === 'all' 
-    ? reports 
-    : reports.filter(r => r.regionId === selectedRegionFilter);
+  // For Super Admin: allow all 10 or filter; for Operator: strictly show ONLY their region's report!
+  const displayedReports = isProvinsi 
+    ? (selectedRegionFilter === 'all' ? reports : reports.filter(r => r.regionId === selectedRegionFilter))
+    : [operatorReport];
+
+  // Scoped personnel: Operator only sees personnel for their own region
+  const scopedPersonnel = isProvinsi
+    ? (selectedRegionFilter === 'all' ? personnel : personnel.filter(p => !p.regionId || p.regionId === selectedRegionFilter))
+    : personnel.filter(p => !p.regionId || p.regionId === operatorRegionId);
 
   // New personnel form state
   const [nama, setNama] = useState('');
@@ -96,9 +95,9 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'Aktif' | 'Cuti' | 'Non-Aktif'>('Aktif');
   const [kategori, setKategori] = useState<'Struktural' | 'Fungsional' | 'Pelaksana' | 'PPPK' | 'Relawan'>('Fungsional');
-  const [sertifikasiStr, setSertifikasiStr] = useState('Firefighter I, MFR');
+  const [sertifikasiStr, setSertifikasiStr] = useState('');
 
-  const filtered = personnel.filter(p => {
+  const filtered = scopedPersonnel.filter(p => {
     const matchSearch = 
       p.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.nip.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -108,16 +107,16 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
     return matchSearch && matchStatus;
   });
 
-  const totalPersonel = personnel.length;
-  const fungsionalCount = personnel.filter(p => p.kategori === 'Fungsional').length;
-  const relawanCount = personnel.filter(p => p.kategori === 'Relawan').length;
-  const pelaksanaCount = personnel.filter(p => p.kategori === 'Pelaksana').length;
-  const strukturalCount = personnel.filter(p => p.kategori === 'Struktural' || p.kategori === 'PPPK').length;
+  const totalPersonel = scopedPersonnel.length;
+  const fungsionalCount = scopedPersonnel.filter(p => p.kategori === 'Fungsional').length;
+  const relawanCount = scopedPersonnel.filter(p => p.kategori === 'Relawan').length;
+  const pelaksanaCount = scopedPersonnel.filter(p => p.kategori === 'Pelaksana').length;
+  const strukturalCount = scopedPersonnel.filter(p => p.kategori === 'Struktural' || p.kategori === 'PPPK').length;
 
   const pct = (cnt: number) => totalPersonel > 0 ? Math.round((cnt / totalPersonel) * 100) : 0;
 
-  const activeCount = personnel.filter(p => p.status === 'Aktif').length;
-  const cutiCount = personnel.filter(p => p.status === 'Cuti').length;
+  const activeCount = scopedPersonnel.filter(p => p.status === 'Aktif').length;
+  const cutiCount = scopedPersonnel.filter(p => p.status === 'Cuti').length;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,17 +129,22 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
       .join('')
       .toUpperCase() || 'DM';
 
+    const assignedRegion = isProvinsi 
+      ? (selectedRegionFilter !== 'all' ? selectedRegionFilter : 'samarinda')
+      : operatorRegionId;
+
     const newP: GasPersonel = {
       id: Date.now(),
       nama,
       nip: nip || '-',
       jabatan,
       status,
-      phone: phone || '0812-0000-0000',
+      phone: phone || '-',
       email: email || `${initials.toLowerCase()}@damkar.kaltim.go.id`,
       avatar: initials,
       kategori,
-      sertifikasi: sertifikasiStr.split(',').map(s => s.trim()).filter(Boolean)
+      sertifikasi: sertifikasiStr.split(',').map(s => s.trim()).filter(Boolean),
+      regionId: assignedRegion
     };
 
     onAddPersonel(newP);
@@ -150,6 +154,7 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
     setJabatan('');
     setPhone('');
     setEmail('');
+    setSertifikasiStr('');
   };
 
   return (
@@ -158,106 +163,149 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-2xl font-black text-white">Data SDM & Personil Damkar Kaltim</h3>
+          <h3 className="text-2xl font-black text-white">
+            {isProvinsi 
+              ? 'Data SDM & Personil Damkar Prov. Kalimantan Timur' 
+              : `Data SDM & Personil Damkar - ${operatorRegionInfo.name}`}
+          </h3>
           <p className="text-sm text-slate-400">
-            Terhubung langsung ke data inputan <strong className="text-rose-400 font-bold">10 Kabupaten/Kota</strong> (SE Sekda Bagian B & D)
+            {isProvinsi ? (
+              <>Terhubung langsung ke seluruh data inputan <strong className="text-rose-400 font-bold">10 Kabupaten/Kota</strong> (SE Sekda Bagian B & D)</>
+            ) : (
+              <>Menampilkan data resmi kepegawaian & kesiapsiagaan <strong className="text-amber-400 font-bold">{operatorRegionInfo.instansiName}</strong></>
+            )}
           </p>
         </div>
 
         {/* View Switcher Tabs */}
-        {isProvinsi ? (
-          <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl">
-            <button
-              type="button"
-              onClick={() => setActiveTab('rekap_daerah')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
-                activeTab === 'rekap_daerah'
-                  ? 'bg-rose-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Building2 className="w-4 h-4" />
-              <span>Matriks SDM 10 Kab/Kota (Admin Provinsi)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('daftar_petugas')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
-                activeTab === 'daftar_petugas'
-                  ? 'bg-rose-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Roster Petugas Lapangan</span>
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300">
-            <Users className="w-4 h-4 text-rose-500" />
-            <span className="font-bold">Roster Petugas Lapangan Daerah</span>
-          </div>
-        )}
+        <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setActiveTab('rekap_daerah')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
+              activeTab === 'rekap_daerah'
+                ? 'bg-rose-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+            <span>{isProvinsi ? 'Matriks SDM 10 Kab/Kota' : `Ringkasan SDM ${operatorRegionInfo.name}`}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('daftar_petugas')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
+              activeTab === 'daftar_petugas'
+                ? 'bg-rose-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>{isProvinsi ? 'Roster Petugas Lapangan' : `Roster Petugas ${operatorRegionInfo.name}`}</span>
+          </button>
+        </div>
       </div>
 
-      {/* TAB 1: REKAPITULASI SDM DARI 10 KAB/KOTA (KHUSUS SUPER ADMIN PROVINSI) */}
-      {isProvinsi && activeTab === 'rekap_daerah' && (
+      {/* TAB 1: REKAPITULASI SDM (SUPER ADMIN: 10 DAERAH; OPERATOR: HANYA DAERAHNYA) */}
+      {activeTab === 'rekap_daerah' && (
         <div className="space-y-6">
           {/* Summary Metric Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Aparatur Damkar</div>
-              <div className="text-3xl font-black text-white">{totalAparaturProv.toLocaleString('id-ID')}</div>
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                {isProvinsi ? 'Total Aparatur Damkar Kaltim' : `Aparatur Damkar ${operatorRegionInfo.name}`}
+              </div>
+              <div className="text-3xl font-black text-white">
+                {(isProvinsi ? totalAparaturProv : opAparatur).toLocaleString('id-ID')}
+              </div>
               <div className="text-xs text-slate-400 mt-2 flex items-center gap-2">
-                <span className="text-emerald-400 font-semibold">{totalPnsProv} PNS</span> •
-                <span className="text-blue-400 font-semibold">{totalPppkProv} PPPK</span> •
-                <span className="text-amber-400 font-semibold">{totalNonAsnProv} Non-ASN</span>
+                <span className="text-emerald-400 font-semibold">{isProvinsi ? totalPnsProv : opPns} PNS</span> •
+                <span className="text-blue-400 font-semibold">{isProvinsi ? totalPppkProv : opPppk} PPPK</span> •
+                <span className="text-amber-400 font-semibold">{isProvinsi ? totalNonAsnProv : opNonAsn} Non-ASN</span>
               </div>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Aparatur PNS Damkar</div>
-              <div className="text-3xl font-black text-emerald-400">{totalPnsProv.toLocaleString('id-ID')}</div>
-              <div className="text-xs text-slate-400 mt-2">Struktural, Fungsional & Pelaksana</div>
+              <div className="text-3xl font-black text-emerald-400">
+                {(isProvinsi ? totalPnsProv : opPns).toLocaleString('id-ID')}
+              </div>
+              <div className="text-xs text-slate-400 mt-2">
+                {isProvinsi ? (
+                  'Struktural, Fungsional & Pelaksana se-Kaltim'
+                ) : (
+                  `Str: ${operatorReport.bagianB.pnsStruktural || 0} | Fung: ${operatorReport.bagianB.pnsFungsional || 0} | Pelaks: ${operatorReport.bagianB.pnsPelaksana || 0}`
+                )}
+              </div>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Relawan Redkar (Bgn D)</div>
-              <div className="text-3xl font-black text-orange-400">{totalRelawanProv.toLocaleString('id-ID')}</div>
-              <div className="text-xs text-slate-400 mt-2">Mitra partisipasi masyarakat aktif</div>
+              <div className="text-3xl font-black text-orange-400">
+                {(isProvinsi ? totalRelawanProv : opRelawan).toLocaleString('id-ID')}
+              </div>
+              <div className="text-xs text-slate-400 mt-2">
+                {isProvinsi ? (
+                  'Mitra partisipasi masyarakat aktif se-Kaltim'
+                ) : (
+                  `Tersebar di ${operatorReport.bagianD.jumlahDesaKelurahan || 0} desa/kelurahan`
+                )}
+              </div>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tersertifikasi Kemendagri</div>
-              <div className="text-3xl font-black text-rose-400">{totalSertifikasiProv.toLocaleString('id-ID')}</div>
-              <div className="text-xs text-slate-400 mt-2">Instruktur, Inspektur, MFR & Rescue</div>
+              <div className="text-3xl font-black text-rose-400">
+                {(isProvinsi ? totalSertifikasiProv : opSertifikasi).toLocaleString('id-ID')}
+              </div>
+              <div className="text-xs text-slate-400 mt-2">
+                {isProvinsi ? (
+                  'Instruktur, Inspektur, MFR & Rescue se-Kaltim'
+                ) : (
+                  `MFR: ${operatorReport.bagianB.sertifikasi.mfr || 0} | Rescue: ${operatorReport.bagianB.sertifikasi.rescue || 0} | Instruktur: ${operatorReport.bagianB.sertifikasi.instruktur || 0}`
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Filter Bar */}
+          {/* Filter Bar (Only for Super Admin; Operator is strictly locked to their region) */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
             <div className="flex items-center gap-2">
               <Layers className="w-5 h-5 text-rose-500" />
-              <span className="text-sm font-bold text-white">Filter Wilayah Kabupaten / Kota:</span>
+              <span className="text-sm font-bold text-white">
+                {isProvinsi ? 'Filter Wilayah Kabupaten / Kota:' : 'Wilayah Kewenangan Anda:'}
+              </span>
             </div>
-            <select
-              value={selectedRegionFilter}
-              onChange={(e) => setSelectedRegionFilter(e.target.value)}
-              className="bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-rose-500"
-            >
-              <option value="all">Seluruh Kalimantan Timur (10 Daerah)</option>
-              {REGIONS_KALTIM.map(r => (
-                <option key={r.id} value={r.id}>{r.name} ({r.instansiType})</option>
-              ))}
-            </select>
+            {isProvinsi ? (
+              <select
+                value={selectedRegionFilter}
+                onChange={(e) => setSelectedRegionFilter(e.target.value)}
+                className="bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-rose-500"
+              >
+                <option value="all">Seluruh Kalimantan Timur (10 Daerah)</option>
+                {REGIONS_KALTIM.map(r => (
+                  <option key={r.id} value={r.id}>{r.name} ({r.instansiType})</option>
+                ))}
+              </select>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span className="font-bold text-white">{operatorRegionInfo.name}</span>
+                <span className="text-amber-400 font-mono text-[10px]">(Akses Terkunci Daerah)</span>
+              </div>
+            )}
           </div>
 
-          {/* 10 Regions Table */}
+          {/* SDM Details Table */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
             <div className="p-4 border-b border-slate-800 flex items-center justify-between">
               <h4 className="font-black text-white text-base flex items-center gap-2">
                 <FileSpreadsheet className="w-5 h-5 text-rose-500" />
-                Matriks Rincian SDM per Daerah (Lampiran II Format SE Sekda)
+                {isProvinsi ? (
+                  'Matriks Rincian SDM per Daerah (Lampiran II Format SE Sekda)'
+                ) : (
+                  `Rincian SDM ${operatorRegionInfo.name} (Lampiran II Format SE Sekda)`
+                )}
               </h4>
               <span className="text-xs text-slate-400">Update Real-time Cloud</span>
             </div>
@@ -294,8 +342,10 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
                         <td className="px-4 py-3.5">
                           <div className="font-bold text-white">{reg.name}</div>
                           <div className="text-xs text-slate-400">{reg.instansiName}</div>
-                          {rep.pengisi?.nama && (
+                          {rep.pengisi?.nama ? (
                             <div className="text-[11px] text-rose-400">Pengisi: {rep.pengisi.nama}</div>
+                          ) : (
+                            <div className="text-[11px] text-slate-500 italic">Pengisi: (Belum diisi)</div>
                           )}
                         </td>
                         <td className="px-4 py-3.5 text-center font-semibold text-emerald-400">

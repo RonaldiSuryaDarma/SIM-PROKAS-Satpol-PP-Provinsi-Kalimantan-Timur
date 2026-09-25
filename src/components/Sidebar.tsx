@@ -310,7 +310,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {userSession?.userName || (userRole === 'admin_provinsi' ? 'Satpol PP Provinsi Kalimantan Timur' : 'Operator Daerah')}
               </p>
               <p className="text-[11px] text-slate-400 leading-tight break-words font-medium">
-                {userSession?.instansi || (userRole === 'admin_provinsi' ? 'Pusat Pengendali Operasi Penyelamatan' : 'Dinas Pemadam Kebakaran & Penyelamatan')}
+                {userSession?.instansi || (userRole === 'admin_provinsi' ? 'Pusat Pengendali Operasi Penyelamatan' : 'Kabupaten / Kota')}
               </p>
             </div>
           </div>

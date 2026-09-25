@@ -36,10 +36,10 @@ export const OFFICIAL_ACCOUNTS: OfficialAccount[] = [
     session: {
       role: 'operator_kabkota',
       regionId: 'samarinda',
-      userName: 'Operator Disdamkar Kota Samarinda',
+      userName: 'Damkar Kota Samarinda',
       nip: '19880512 201201 1 002',
       jabatan: 'Pengelola Data SIM-PROKAS',
-      instansi: 'Dinas Pemadam Kebakaran dan Penyelamatan Kota Samarinda'
+      instansi: 'Kota Samarinda'
     },
     description: 'Entri Laporan SE Sekda wilayah Kota Samarinda'
   },
@@ -50,10 +50,10 @@ export const OFFICIAL_ACCOUNTS: OfficialAccount[] = [
     session: {
       role: 'operator_kabkota',
       regionId: 'balikpapan',
-      userName: 'Operator BPBD Damkar Kota Balikpapan',
+      userName: 'Damkar Kota Balikpapan',
       nip: '19890723 201302 1 003',
       jabatan: 'Pengelola Data SIM-PROKAS',
-      instansi: 'Badan Penanggulangan Bencana Daerah (UPTD Damkar) Kota Balikpapan'
+      instansi: 'Kota Balikpapan'
     },
     description: 'Entri Laporan SE Sekda wilayah Kota Balikpapan'
   },
@@ -64,10 +64,10 @@ export const OFFICIAL_ACCOUNTS: OfficialAccount[] = [
     session: {
       role: 'operator_kabkota',
       regionId: 'kukar',
-      userName: 'Operator Disdamkarmatan Kab. Kutai Kartanegara',
+      userName: 'Damkar Kab. Kutai Kartanegara',
       nip: '19900315 201403 1 004',
       jabatan: 'Pengelola Data SIM-PROKAS',
-      instansi: 'Dinas Pemadam Kebakaran dan Penyelamatan Kab. Kutai Kartanegara'
+      instansi: 'Kab. Kutai Kartanegara'
     },
     description: 'Entri Laporan SE Sekda wilayah Kab. Kutai Kartanegara'
   },
@@ -78,10 +78,10 @@ export const OFFICIAL_ACCOUNTS: OfficialAccount[] = [
     session: {
       role: 'operator_kabkota',
       regionId: 'kutim',
-      userName: 'Operator Disdamkartan Kab. Kutai Timur',
+      userName: 'Damkar Kab. Kutai Timur',
       nip: '19871104 201101 1 005',
       jabatan: 'Pengelola Data SIM-PROKAS',
-      instansi: 'Dinas Pemadam Kebakaran dan Penyelamatan Kab. Kutai Timur'
+      instansi: 'Kab. Kutai Timur'
     },
     description: 'Entri Laporan SE Sekda wilayah Kab. Kutai Timur'
   },
@@ -92,10 +92,10 @@ export const OFFICIAL_ACCOUNTS: OfficialAccount[] = [
     session: {
       role: 'operator_kabkota',
       regionId: 'paser',
-      userName: 'Operator Damkar Kab. Paser',
+      userName: 'Damkar Kab. Paser',
       nip: '19910218 201502 1 006',
       jabatan: 'Pengelola Data SIM-PROKAS',
-      instansi: 'Dinas Pemadam Kebakaran Kab. Paser'
+      instansi: 'Kab. Paser'
     },
     description: 'Entri Laporan SE Sekda wilayah Kab. Paser'
   },
@@ -106,10 +106,10 @@ export const OFFICIAL_ACCOUNTS: OfficialAccount[] = [
     session: {
       role: 'operator_kabkota',
       regionId: 'berau',
-      userName: 'Operator BPBD Damkar Kab. Berau',
+      userName: 'Damkar Kab. Berau',
       nip: '19860909 201001 1 007',
       jabatan: 'Pengelola Data SIM-PROKAS',
-      instansi: 'Badan Penanggulangan Bencana Daerah Kab. Berau'
+      instansi: 'Kab. Berau'
     },
     description: 'Entri Laporan SE Sekda wilayah Kab. Berau'
   },
@@ -120,10 +120,10 @@ export const OFFICIAL_ACCOUNTS: OfficialAccount[] = [
     session: {
       role: 'operator_kabkota',
       regionId: 'bontang',
-      userName: 'Operator Disdamkartan Kota Bontang',
+      userName: 'Damkar Kota Bontang',
       nip: '19920412 201603 1 008',
       jabatan: 'Pengelola Data SIM-PROKAS',
-      instansi: 'Dinas Pemadam Kebakaran dan Penyelamatan Kota Bontang'
+      instansi: 'Kota Bontang'
     },
     description: 'Entri Laporan SE Sekda wilayah Kota Bontang'
   },
@@ -134,10 +134,10 @@ export const OFFICIAL_ACCOUNTS: OfficialAccount[] = [
     session: {
       role: 'operator_kabkota',
       regionId: 'kubar',
-      userName: 'Operator BPBD Damkar Kab. Kutai Barat',
+      userName: 'Damkar Kab. Kutai Barat',
       nip: '19881225 201301 1 009',
       jabatan: 'Pengelola Data SIM-PROKAS',
-      instansi: 'Badan Penanggulangan Bencana Daerah Kab. Kutai Barat'
+      instansi: 'Kab. Kutai Barat'
     },
     description: 'Entri Laporan SE Sekda wilayah Kab. Kutai Barat'
   },
@@ -147,11 +147,11 @@ export const OFFICIAL_ACCOUNTS: OfficialAccount[] = [
     password: 'PPU@2026',
     session: {
       role: 'operator_kabkota',
-      regionId: 'penajam',
-      userName: 'Operator DPKP Kab. Penajam Paser Utara',
+      regionId: 'ppu',
+      userName: 'Damkar Kab. Penajam Paser Utara',
       nip: '19930614 201704 1 010',
       jabatan: 'Pengelola Data SIM-PROKAS',
-      instansi: 'Dinas Penanggulangan Kebakaran dan Penyelamatan Kab. PPU'
+      instansi: 'Kab. Penajam Paser Utara'
     },
     description: 'Entri Laporan SE Sekda wilayah Kab. Penajam Paser Utara'
   },
@@ -161,11 +161,11 @@ export const OFFICIAL_ACCOUNTS: OfficialAccount[] = [
     password: 'Mahulu@2026',
     session: {
       role: 'operator_kabkota',
-      regionId: 'mahakam_ulu',
-      userName: 'Operator BPBD Damkar Kab. Mahakam Ulu',
+      regionId: 'mahulu',
+      userName: 'Damkar Kab. Mahakam Ulu',
       nip: '19940830 201802 1 011',
       jabatan: 'Pengelola Data SIM-PROKAS',
-      instansi: 'Badan Penanggulangan Bencana Daerah Kab. Mahakam Ulu'
+      instansi: 'Kab. Mahakam Ulu'
     },
     description: 'Entri Laporan SE Sekda wilayah Kab. Mahakam Ulu'
   }

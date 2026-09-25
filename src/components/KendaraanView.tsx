@@ -18,24 +18,35 @@ import {
 import { GasVehicle } from '../data/gasAppData';
 import { storageService } from '../services/storageService';
 import { REGIONS_KALTIM } from '../data/regions';
-import { DamkarReport } from '../types';
+import { DamkarReport, UserRole, UserSession } from '../types';
 
 interface KendaraanViewProps {
   vehicles: GasVehicle[];
   onRefillFuel: (id: number) => void;
   onToggleStatus: (id: number) => void;
   onAddVehicle?: (v: GasVehicle) => void;
+  userRole?: UserRole;
+  userSession?: UserSession | null;
 }
 
 export const KendaraanView: React.FC<KendaraanViewProps> = ({
   vehicles,
   onRefillFuel,
   onToggleStatus,
-  onAddVehicle
+  onAddVehicle,
+  userRole = 'admin_provinsi',
+  userSession
 }) => {
-  const [activeTab, setActiveTab] = useState<'rekap_daerah' | 'status_armada'>('rekap_daerah');
+  const isProvinsi = userRole === 'admin_provinsi';
+  const [activeTab, setActiveTab] = useState<'rekap_daerah' | 'status_armada'>(isProvinsi ? 'rekap_daerah' : 'status_armada');
   const [selectedRegionFilter, setSelectedRegionFilter] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isProvinsi) {
+      setActiveTab('status_armada');
+    }
+  }, [isProvinsi]);
 
   // Live reports from 10 Kab/Kota
   const [reports, setReports] = useState<DamkarReport[]>(() => 
@@ -113,37 +124,48 @@ export const KendaraanView: React.FC<KendaraanViewProps> = ({
         <div>
           <h3 className="text-2xl font-black text-white">Inventaris Armada & Sarpras Damkar Kaltim</h3>
           <p className="text-sm text-slate-400">
-            Terhubung langsung ke data inventaris <strong className="text-rose-400 font-bold">10 Kabupaten/Kota</strong> (SE Sekda Bagian C)
+            {isProvinsi ? (
+              <>Terhubung langsung ke data inventaris <strong className="text-rose-400 font-bold">10 Kabupaten/Kota</strong> (SE Sekda Bagian C)</>
+            ) : (
+              <>Monitoring kesiapsiagaan unit damkar & armada operasional penyelamatan daerah</>
+            )}
           </p>
         </div>
 
         {/* View Switcher Tabs */}
-        <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl">
-          <button
-            type="button"
-            onClick={() => setActiveTab('rekap_daerah')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
-              activeTab === 'rekap_daerah'
-                ? 'bg-rose-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Building2 className="w-4 h-4" />
-            <span>Rekap 10 Kab/Kota (SE Sekda)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('status_armada')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
-              activeTab === 'status_armada'
-                ? 'bg-rose-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Truck className="w-4 h-4" />
-            <span>Status Armada Operasional</span>
-          </button>
-        </div>
+        {isProvinsi ? (
+          <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setActiveTab('rekap_daerah')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
+                activeTab === 'rekap_daerah'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Rekap 10 Kab/Kota (SE Sekda)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('status_armada')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
+                activeTab === 'status_armada'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Truck className="w-4 h-4" />
+              <span>Status Armada Operasional</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300">
+            <Truck className="w-4 h-4 text-rose-500" />
+            <span className="font-bold">Status Armada Operasional Daerah</span>
+          </div>
+        )}
       </div>
 
       {/* TAB 1: REKAPITULASI DARI 10 KAB/KOTA (DATA OPERATOR) */}
@@ -182,115 +204,120 @@ export const KendaraanView: React.FC<KendaraanViewProps> = ({
             </div>
           </div>
 
-          {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-            <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-rose-500" />
-              <span className="text-sm font-bold text-white">Filter Wilayah Kabupaten / Kota:</span>
-            </div>
-            <select
-              value={selectedRegionFilter}
-              onChange={(e) => setSelectedRegionFilter(e.target.value)}
-              className="bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-rose-500"
-            >
-              <option value="all">Seluruh Kalimantan Timur (10 Daerah)</option>
-              {REGIONS_KALTIM.map(r => (
-                <option key={r.id} value={r.id}>{r.name} ({r.instansiType})</option>
-              ))}
-            </select>
-          </div>
+          {/* Filter Bar & 10 Regions Table - HANYA UNTUK SUPER ADMIN PROVINSI */}
+          {isProvinsi && (
+            <>
+              {/* Filter Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-rose-500" />
+                  <span className="text-sm font-bold text-white">Filter Wilayah Kabupaten / Kota:</span>
+                </div>
+                <select
+                  value={selectedRegionFilter}
+                  onChange={(e) => setSelectedRegionFilter(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-rose-500"
+                >
+                  <option value="all">Seluruh Kalimantan Timur (10 Daerah)</option>
+                  {REGIONS_KALTIM.map(r => (
+                    <option key={r.id} value={r.id}>{r.name} ({r.instansiType})</option>
+                  ))}
+                </select>
+              </div>
 
-          {/* 10 Regions Table */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-              <h4 className="font-black text-white text-base flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5 text-rose-500" />
-                Matriks Inventaris Sarana Prasarana Kendaraan (Bagian C SE Sekda)
-              </h4>
-              <span className="text-xs text-slate-400">Update Real-time Cloud</span>
-            </div>
+              {/* 10 Regions Table */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                  <h4 className="font-black text-white text-base flex items-center gap-2">
+                    <FileSpreadsheet className="w-5 h-5 text-rose-500" />
+                    Matriks Inventaris Sarana Prasarana Kendaraan (Bagian C SE Sekda)
+                  </h4>
+                  <span className="text-xs text-slate-400">Update Real-time Cloud</span>
+                </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-300">
-                <thead className="bg-slate-950 text-slate-400 text-xs uppercase font-bold border-b border-slate-800">
-                  <tr>
-                    <th className="px-4 py-3">No</th>
-                    <th className="px-4 py-3">Kabupaten / Kota</th>
-                    <th className="px-4 py-3 text-center">Mobil Damkar</th>
-                    <th className="px-4 py-3 text-center">Mobil Tangki</th>
-                    <th className="px-4 py-3 text-center">Mobil Tangga</th>
-                    <th className="px-4 py-3 text-center">Mobil Rescue</th>
-                    <th className="px-4 py-3 text-center">Lainnya</th>
-                    <th className="px-4 py-3 text-center font-bold text-white">Total Unit</th>
-                    <th className="px-4 py-3 text-center">Status Laporan</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {displayedReports.map((rep, idx) => {
-                    const reg = REGIONS_KALTIM.find(r => r.id === rep.regionId) || REGIONS_KALTIM[0];
-                    const totalUnit = (Number(rep.bagianC.mobilDamkar) || 0) +
-                      (Number(rep.bagianC.mobilTangki) || 0) +
-                      (Number(rep.bagianC.mobilTangga) || 0) +
-                      (Number(rep.bagianC.mobilRescue) || 0) +
-                      (Number(rep.bagianC.kendaraanLainnya) || 0);
-
-                    return (
-                      <tr key={rep.id} className="hover:bg-slate-800/50 transition">
-                        <td className="px-4 py-3.5 text-xs text-slate-500">{idx + 1}</td>
-                        <td className="px-4 py-3.5">
-                          <div className="font-bold text-white">{reg.name}</div>
-                          <div className="text-xs text-slate-400">{reg.instansiName}</div>
-                          {rep.pengisi?.nama && (
-                            <div className="text-[11px] text-rose-400">Pengisi: {rep.pengisi.nama}</div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3.5 text-center font-semibold text-rose-400">
-                          {rep.bagianC.mobilDamkar || 0}
-                        </td>
-                        <td className="px-4 py-3.5 text-center font-semibold text-blue-400">
-                          {rep.bagianC.mobilTangki || 0}
-                        </td>
-                        <td className="px-4 py-3.5 text-center font-semibold text-amber-400">
-                          {rep.bagianC.mobilTangga || 0}
-                        </td>
-                        <td className="px-4 py-3.5 text-center font-semibold text-purple-400">
-                          {rep.bagianC.mobilRescue || 0}
-                        </td>
-                        <td className="px-4 py-3.5 text-center font-semibold text-slate-400">
-                          {rep.bagianC.kendaraanLainnya || 0}
-                        </td>
-                        <td className="px-4 py-3.5 text-center font-black text-white text-base">
-                          {totalUnit} unit
-                        </td>
-                        <td className="px-4 py-3.5 text-center">
-                          {rep.status === 'verified' && (
-                            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                              Terverifikasi
-                            </span>
-                          )}
-                          {rep.status === 'submitted' && (
-                            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                              Diajukan
-                            </span>
-                          )}
-                          {rep.status === 'revision_needed' && (
-                            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                              Perlu Revisi
-                            </span>
-                          )}
-                          {(!rep.status || rep.status === 'draft') && (
-                            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-700/50 text-slate-400 border border-slate-700">
-                              Draft
-                            </span>
-                          )}
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-slate-300">
+                    <thead className="bg-slate-950 text-slate-400 text-xs uppercase font-bold border-b border-slate-800">
+                      <tr>
+                        <th className="px-4 py-3">No</th>
+                        <th className="px-4 py-3">Kabupaten / Kota</th>
+                        <th className="px-4 py-3 text-center">Mobil Damkar</th>
+                        <th className="px-4 py-3 text-center">Mobil Tangki</th>
+                        <th className="px-4 py-3 text-center">Mobil Tangga</th>
+                        <th className="px-4 py-3 text-center">Mobil Rescue</th>
+                        <th className="px-4 py-3 text-center">Lainnya</th>
+                        <th className="px-4 py-3 text-center font-bold text-white">Total Unit</th>
+                        <th className="px-4 py-3 text-center">Status Laporan</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {displayedReports.map((rep, idx) => {
+                        const reg = REGIONS_KALTIM.find(r => r.id === rep.regionId) || REGIONS_KALTIM[0];
+                        const totalUnit = (Number(rep.bagianC.mobilDamkar) || 0) +
+                          (Number(rep.bagianC.mobilTangki) || 0) +
+                          (Number(rep.bagianC.mobilTangga) || 0) +
+                          (Number(rep.bagianC.mobilRescue) || 0) +
+                          (Number(rep.bagianC.kendaraanLainnya) || 0);
+
+                        return (
+                          <tr key={rep.id} className="hover:bg-slate-800/50 transition">
+                            <td className="px-4 py-3.5 text-xs text-slate-500">{idx + 1}</td>
+                            <td className="px-4 py-3.5">
+                              <div className="font-bold text-white">{reg.name}</div>
+                              <div className="text-xs text-slate-400">{reg.instansiName}</div>
+                              {rep.pengisi?.nama && (
+                                <div className="text-[11px] text-rose-400">Pengisi: {rep.pengisi.nama}</div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3.5 text-center font-semibold text-rose-400">
+                              {rep.bagianC.mobilDamkar || 0}
+                            </td>
+                            <td className="px-4 py-3.5 text-center font-semibold text-blue-400">
+                              {rep.bagianC.mobilTangki || 0}
+                            </td>
+                            <td className="px-4 py-3.5 text-center font-semibold text-amber-400">
+                              {rep.bagianC.mobilTangga || 0}
+                            </td>
+                            <td className="px-4 py-3.5 text-center font-semibold text-purple-400">
+                              {rep.bagianC.mobilRescue || 0}
+                            </td>
+                            <td className="px-4 py-3.5 text-center font-semibold text-slate-400">
+                              {rep.bagianC.kendaraanLainnya || 0}
+                            </td>
+                            <td className="px-4 py-3.5 text-center font-black text-white text-base">
+                              {totalUnit} unit
+                            </td>
+                            <td className="px-4 py-3.5 text-center">
+                              {rep.status === 'verified' && (
+                                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                  Terverifikasi
+                                </span>
+                              )}
+                              {rep.status === 'submitted' && (
+                                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                  Diajukan
+                                </span>
+                              )}
+                              {rep.status === 'revision_needed' && (
+                                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                  Perlu Revisi
+                                </span>
+                              )}
+                              {(!rep.status || rep.status === 'draft') && (
+                                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-700/50 text-slate-400 border border-slate-700">
+                                  Draft
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 

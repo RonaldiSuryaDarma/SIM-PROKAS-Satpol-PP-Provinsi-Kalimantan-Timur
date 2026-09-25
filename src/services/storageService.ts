@@ -4,8 +4,8 @@ import { REGIONS_KALTIM } from '../data/regions';
 import { db, validateFirestoreConnection } from '../lib/firebase';
 import { collection, doc, setDoc, getDocs, onSnapshot, writeBatch, deleteDoc } from 'firebase/firestore';
 
-const STORAGE_KEY_REPORTS = 'simprokas_kaltim_reports_v6_clean';
-const STORAGE_KEY_AUDIT = 'simprokas_kaltim_audit_v6_clean';
+const STORAGE_KEY_REPORTS = 'simprokas_kaltim_reports_v7_clean';
+const STORAGE_KEY_AUDIT = 'simprokas_kaltim_audit_v7_clean';
 
 const DUMMY_PENGISI_NAMES = new Set([
   'Ahmad Fauzi, S.Kom.',
@@ -50,6 +50,8 @@ class StorageService {
   private init() {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('simprokas_kaltim_reports_v6_clean');
+        localStorage.removeItem('simprokas_kaltim_audit_v6_clean');
         localStorage.removeItem('simprokas_kaltim_reports_v3_clean');
         localStorage.removeItem('simprokas_kaltim_reports_clean_v2');
         localStorage.removeItem('simprokas_kaltim_reports_clean_v1');
