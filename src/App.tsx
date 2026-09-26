@@ -174,13 +174,9 @@ export default function App() {
   useEffect(() => {
     try {
       const unsub = onSnapshot(collection(db, 'personnel'), (snapshot) => {
-        if (!snapshot.empty) {
-          const list: GasPersonel[] = [];
-          snapshot.forEach(docSnap => list.push(docSnap.data() as GasPersonel));
-          if (list.length > 0) {
-            setPersonnel(list);
-          }
-        }
+        const list: GasPersonel[] = [];
+        snapshot.forEach(docSnap => list.push(docSnap.data() as GasPersonel));
+        setPersonnel(list);
       }, (err) => {
         console.warn('Firestore personnel listener notice:', err);
       });
@@ -373,6 +369,19 @@ export default function App() {
     showToast('PERSONIL DITAMBAHKAN', `Data personil ${newP.nama} berhasil didaftarkan.`, 'success');
   };
 
+  // Delete Personnel handler
+  const handleDeletePersonel = (id: number) => {
+    setPersonnel(prev => prev.filter(p => p.id !== id));
+    try {
+      deleteDoc(doc(db, 'personnel', String(id))).catch(err => {
+        console.warn('Firestore personnel delete notice:', err);
+      });
+    } catch (e) {
+      console.warn('Firestore personnel delete error:', e);
+    }
+    showToast('DATA PERSONIL DIHAPUS', 'Data personil berhasil dihapus dari sistem dan Cloud Firestore.', 'info');
+  };
+
   const activeIncidentsCount = incidents.filter(i => i.status === 'Aktif').length;
   const readyVehiclesCount = vehicles.filter(v => v.status === 'Siap').length;
 
@@ -462,8 +471,11 @@ export default function App() {
             <PersonelView
               personnel={personnel}
               onAddPersonel={handleAddPersonel}
+              onDeletePersonel={handleDeletePersonel}
               userRole={userRole}
               userSession={userSession}
+              selectedRegionId={selectedRegionId}
+              onSelectRegion={setSelectedRegionId}
             />
           )}
 

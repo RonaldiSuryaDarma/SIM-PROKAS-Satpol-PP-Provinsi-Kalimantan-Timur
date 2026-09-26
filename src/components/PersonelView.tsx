@@ -11,7 +11,9 @@ import {
   IdCard,
   Building2,
   FileSpreadsheet,
-  Layers
+  Layers,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { GasPersonel } from '../data/gasAppData';
 import { storageService } from '../services/storageService';
@@ -21,25 +23,46 @@ import { DamkarReport, UserRole, UserSession } from '../types';
 interface PersonelViewProps {
   personnel: GasPersonel[];
   onAddPersonel: (p: GasPersonel) => void;
+  onDeletePersonel?: (id: number) => void;
   userRole?: UserRole;
   userSession?: UserSession | null;
+  selectedRegionId?: string;
+  onSelectRegion?: (id: string) => void;
 }
 
 export const PersonelView: React.FC<PersonelViewProps> = ({
   personnel,
   onAddPersonel,
+  onDeletePersonel,
   userRole = 'admin_provinsi',
-  userSession
+  userSession,
+  selectedRegionId,
+  onSelectRegion
 }) => {
   const isProvinsi = userRole === 'admin_provinsi';
   const operatorRegionId = userSession?.regionId || 'samarinda';
   const operatorRegionInfo = REGIONS_KALTIM.find(r => r.id === operatorRegionId) || REGIONS_KALTIM[0];
 
-  const [activeTab, setActiveTab] = useState<'rekap_daerah' | 'daftar_petugas'>('rekap_daerah');
-  const [selectedRegionFilter, setSelectedRegionFilter] = useState<string>(isProvinsi ? 'all' : operatorRegionId);
+  const [activeTab, setActiveTab] = useState<'rekap_daerah' | 'daftar_petugas'>('daftar_petugas');
+  const [selectedRegionFilter, setSelectedRegionFilter] = useState<string>(
+    isProvinsi ? (selectedRegionId && selectedRegionId !== 'kaltim' ? selectedRegionId : 'all') : operatorRegionId
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [personToDelete, setPersonToDelete] = useState<GasPersonel | null>(null);
+  const [formRegionId, setFormRegionId] = useState<string>(operatorRegionId);
+
+  // Synchronize with header region changes for Super Admin
+  useEffect(() => {
+    if (isProvinsi && selectedRegionId) {
+      if (selectedRegionId === 'kaltim') {
+        setSelectedRegionFilter('all');
+      } else {
+        setSelectedRegionFilter(selectedRegionId);
+      }
+    }
+  }, [isProvinsi, selectedRegionId]);
 
   // Live reports from 10 Kab/Kota
   const [reports, setReports] = useState<DamkarReport[]>(() => 
@@ -82,10 +105,12 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
     ? (selectedRegionFilter === 'all' ? reports : reports.filter(r => r.regionId === selectedRegionFilter))
     : [operatorReport];
 
-  // Scoped personnel: Operator only sees personnel for their own region
+  // Scoped personnel:
+  // - Operator: STRICTLY only see personnel whose regionId matches their region (isolated per Kab/Kota)
+  // - Super Admin: sees ALL personnel (if selectedRegionFilter === 'all') or filtered to specific Kab/Kota
   const scopedPersonnel = isProvinsi
-    ? (selectedRegionFilter === 'all' ? personnel : personnel.filter(p => !p.regionId || p.regionId === selectedRegionFilter))
-    : personnel.filter(p => !p.regionId || p.regionId === operatorRegionId);
+    ? (selectedRegionFilter === 'all' ? personnel : personnel.filter(p => p.regionId === selectedRegionFilter))
+    : personnel.filter(p => p.regionId === operatorRegionId);
 
   // New personnel form state
   const [nama, setNama] = useState('');
@@ -130,7 +155,7 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
       .toUpperCase() || 'DM';
 
     const assignedRegion = isProvinsi 
-      ? (selectedRegionFilter !== 'all' ? selectedRegionFilter : 'samarinda')
+      ? (formRegionId || (selectedRegionFilter !== 'all' ? selectedRegionFilter : 'samarinda'))
       : operatorRegionId;
 
     const newP: GasPersonel = {
@@ -500,7 +525,7 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
 
           {/* Search and Filters */}
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800">
-            <div className="relative w-full sm:w-96">
+            <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
               <input 
                 type="text" 
@@ -511,18 +536,42 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
               />
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className="text-xs text-slate-400 font-semibold shrink-0">Filter Status:</span>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-slate-950 border border-slate-800 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-rose-500 transition"
-              >
-                <option value="Semua">Semua Status</option>
-                <option value="Aktif">Aktif</option>
-                <option value="Cuti">Cuti</option>
-                <option value="Non-Aktif">Non-Aktif</option>
-              </select>
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              {/* Wilayah Filter for Super Admin (operator is locked to their own region) */}
+              {isProvinsi && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-semibold shrink-0">Wilayah:</span>
+                  <select
+                    value={selectedRegionFilter}
+                    onChange={(e) => {
+                      setSelectedRegionFilter(e.target.value);
+                      if (onSelectRegion && e.target.value !== 'all') {
+                        onSelectRegion(e.target.value);
+                      }
+                    }}
+                    className="bg-slate-950 border border-slate-800 text-white rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-rose-500 transition"
+                  >
+                    <option value="all">Semua 10 Kab/Kota</option>
+                    {REGIONS_KALTIM.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-semibold shrink-0">Filter Status:</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500 transition"
+                >
+                  <option value="Semua">Semua Status</option>
+                  <option value="Aktif">Aktif</option>
+                  <option value="Cuti">Cuti</option>
+                  <option value="Non-Aktif">Non-Aktif</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -537,75 +586,98 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
                     <th className="px-6 py-4">Sertifikasi Keahlian</th>
                     <th className="px-6 py-4">Kontak Darurat</th>
                     <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {filtered.length > 0 ? (
-                    filtered.map((person) => (
-                      <tr key={person.id} className="hover:bg-slate-800/40 transition">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-rose-400 text-sm shrink-0">
-                              {person.avatar}
+                    filtered.map((person) => {
+                      const regName = REGIONS_KALTIM.find(r => r.id === person.regionId)?.name || (person.regionId === 'kaltim' ? 'Prov. Kaltim' : person.regionId);
+                      return (
+                        <tr key={person.id} className="hover:bg-slate-800/40 transition">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-rose-400 text-sm shrink-0">
+                                {person.avatar}
+                              </div>
+                              <div>
+                                <div className="font-bold text-white">{person.nama}</div>
+                                <div className="text-xs text-slate-500 font-mono">NIP: {person.nip}</div>
+                                {regName && (
+                                  <div className="mt-1">
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700">
+                                      <Building2 className="w-2.5 h-2.5" />
+                                      {regName}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <div className="font-bold text-white">{person.nama}</div>
-                              <div className="text-xs text-slate-500 font-mono">NIP: {person.nip}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-white font-medium">{person.jabatan}</div>
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold mt-1 ${
+                              person.kategori === 'Fungsional' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
+                              person.kategori === 'Relawan' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+                              person.kategori === 'Pelaksana' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                              'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            }`}>
+                              {person.kategori}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-wrap gap-1.5">
+                              {(person.sertifikasi || []).map((cert, idx) => (
+                                <span key={idx} className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 bg-slate-800 text-slate-300 rounded border border-slate-700">
+                                  <Award className="w-3 h-3 text-orange-400" />
+                                  {cert}
+                                </span>
+                              ))}
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-white font-medium">{person.jabatan}</div>
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold mt-1 ${
-                            person.kategori === 'Fungsional' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
-                            person.kategori === 'Relawan' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
-                            person.kategori === 'Pelaksana' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                            'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          }`}>
-                            {person.kategori}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-1.5">
-                            {(person.sertifikasi || []).map((cert, idx) => (
-                              <span key={idx} className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 bg-slate-800 text-slate-300 rounded border border-slate-700">
-                                <Award className="w-3 h-3 text-orange-400" />
-                                {cert}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-1 text-xs">
-                            <div className="flex items-center gap-1.5 text-slate-400">
-                              <Phone className="w-3.5 h-3.5 text-slate-500" />
-                              <span>{person.phone}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1 text-xs">
+                              <div className="flex items-center gap-1.5 text-slate-400">
+                                <Phone className="w-3.5 h-3.5 text-slate-500" />
+                                <span>{person.phone}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-slate-400">
+                                <Mail className="w-3.5 h-3.5 text-slate-500" />
+                                <span>{person.email}</span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1.5 text-slate-400">
-                              <Mail className="w-3.5 h-3.5 text-slate-500" />
-                              <span>{person.email}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                            person.status === 'Aktif' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                            person.status === 'Cuti' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                            'bg-slate-700/40 text-slate-400 border border-slate-700'
-                          }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              person.status === 'Aktif' ? 'bg-emerald-400' :
-                              person.status === 'Cuti' ? 'bg-amber-400' :
-                              'bg-slate-400'
-                            }`} />
-                            {person.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                              person.status === 'Aktif' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                              person.status === 'Cuti' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                              'bg-slate-700/40 text-slate-400 border border-slate-700'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                person.status === 'Aktif' ? 'bg-emerald-400' :
+                                person.status === 'Cuti' ? 'bg-amber-400' :
+                                'bg-slate-400'
+                              }`} />
+                              {person.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <button
+                              type="button"
+                              onClick={() => setPersonToDelete(person)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs font-bold transition shadow-sm"
+                              title="Hapus Data Personil"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Hapus</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
-                      <td colSpan={5} className="text-center py-12 text-slate-500">
+                      <td colSpan={6} className="text-center py-12 text-slate-500">
                         Tidak ada personil yang sesuai dengan kriteria pencarian.
                       </td>
                     </tr>
@@ -638,6 +710,25 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Super Admin can select target Kab/Kota or Provinsi; Operator is automatically assigned to their own Kab/Kota */}
+              {isProvinsi && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    Wilayah Penugasan (Kabupaten / Kota) *
+                  </label>
+                  <select
+                    value={formRegionId}
+                    onChange={(e) => setFormRegionId(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-rose-500 font-semibold"
+                  >
+                    <option value="kaltim">Provinsi Kalimantan Timur (Mako Satpol PP Prov)</option>
+                    {REGIONS_KALTIM.map(r => (
+                      <option key={r.id} value={r.id}>{r.name} ({r.instansiType})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
                   Nama Lengkap *
@@ -757,6 +848,64 @@ export const PersonelView: React.FC<PersonelViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus Data Personil */}
+      {personToDelete && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-white animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-800">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-black text-base">Hapus Data Personil</h3>
+                <p className="text-xs text-slate-400">Tersinkron permanen ke Cloud Firestore</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 space-y-1.5 text-xs">
+              <div className="text-slate-400">Nama Petugas:</div>
+              <div className="font-bold text-sm text-white">{personToDelete.nama}</div>
+              <div className="text-slate-400">Jabatan: <span className="text-slate-200 font-semibold">{personToDelete.jabatan}</span></div>
+              <div className="text-slate-400">NIP: <span className="font-mono text-slate-300">{personToDelete.nip || '-'}</span></div>
+              {personToDelete.regionId && (
+                <div className="text-slate-400">
+                  Wilayah: <span className="text-amber-400 font-bold">
+                    {REGIONS_KALTIM.find(r => r.id === personToDelete.regionId)?.name || (personToDelete.regionId === 'kaltim' ? 'Provinsi Kaltim' : personToDelete.regionId)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Apakah Anda yakin ingin menghapus data personil ini dari daftar <strong>Roster Petugas Lapangan</strong>? Data yang dihapus akan langsung hilang secara real-time dari sistem dan database provinsi.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setPersonToDelete(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onDeletePersonel) {
+                    onDeletePersonel(personToDelete.id);
+                  }
+                  setPersonToDelete(null);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-lg shadow-rose-600/20 flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Ya, Hapus Data</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
